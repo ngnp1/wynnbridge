@@ -21,3 +21,6 @@ bin/
 
 # OS
 .DS_Store
+
+# Local agent notes, kept out of the repo
+AGENTS.md

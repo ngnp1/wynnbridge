@@ -176,7 +176,7 @@ public final class ChatBridgeHooks {
 	}
 
 	/** Colour used for messages mirrored in from Discord. */
-	private static final int BRIDGE_COLOR = 0x4ED288;
+	private static final int BRIDGE_COLOR = 0xCF0042;
 
 	/** Colour used for mail lines, one shade warmer than the bridge. */
 	private static final int MAIL_COLOR = 0xFFB86C;
