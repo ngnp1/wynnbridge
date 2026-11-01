@@ -6,11 +6,11 @@ Client-side mod that connects Minecraft to the bot's chat bridge:
 - **Discord -> game:** messages from the bridge channel are injected into your chat HUD only —
   nothing is sent to Wynncraft.
 - **Mail:** `/mail send <player> <title> <text>` stores a message server-side. Titles may be
-  quoted to hold several words and are capped at 30 characters. The recipient sees a themed
+  quoted to hold several words and are capped at 60 characters. The recipient sees a themed
   `You have <n> new Mails!` line when they log in or when mail arrives; `/mail inbox` lists every
-  mail with `<unr>`/`<r>` tags, `/mail read <n>` opens one and `/mail clear` deletes them. Pending
-  mail is also polled every 15 seconds, so a mail the server could not push still shows up
-  without a relog.
+  mail, unread first, with `<unr>`/`<r>` tags and paging. `/mail read <n>` opens one and
+  `/mail clear` deletes them. Pending mail is polled every 15 seconds, so a mail the server
+  could not push still shows up without a relog.
 
 The backend (Discord bot + WebSocket server) lives in the companion bot repository, in
 `cogs/chat_bridge.py`.
@@ -100,11 +100,10 @@ starting point but may also catch other messages.
 
 | Command | Effect |
 | --- | --- |
-| `/mail send <player> <title> <text>` | Send mail through the bridge; quote the title for several words (max 30 chars) |
-| `/mail inbox` | Count line, then `<unr>`/`<r>` `#n <title> from <sender>` for every mail |
-| `/mail inbox unread` / `read` | Same list, filtered to one state |
+| `/mail send <player> <title> <text>` | Send mail through the bridge; quote the title for several words (max 60 chars) |
+| `/mail inbox [unread\|read] [page]` | Heads with `Inbox` / `Inbox <unread>` / `Inbox <read>`, then ten `<unr>`/`<r>` `#n <title> from <sender>` lines, unread first |
 | `/mail read <n>` | Show that mail and mark it read; it stays in the inbox |
-| `/mail clear <all\|n\|x-y>` | Delete one mail, an inclusive range, or everything |
+| `/mail clear <all\|n\|x-y> [from <player>]` | Delete one mail, an inclusive range, or everything; `from` narrows it to one sender |
 | `/bridge join <link>` | Save a `wss://host/ws#token` link and reconnect |
 | `/bridge status` | Server URL, connection state, unread count |
 | `/bridge reconnect` | Force a reconnect |

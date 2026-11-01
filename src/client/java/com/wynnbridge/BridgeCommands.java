@@ -2,12 +2,15 @@ package com.wynnbridge;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -16,7 +19,10 @@ import java.util.List;
  */
 public final class BridgeCommands {
 	/** Longest mail title the mod accepts, matching the bot's own limit. */
-	private static final int MAX_TITLE_LENGTH = 30;
+	private static final int MAX_TITLE_LENGTH = 60;
+
+	/** Mails shown per inbox page. */
+	private static final int MAIL_PAGE_SIZE = 10;
 
 	private BridgeCommands() {
 	}
@@ -30,11 +36,14 @@ public final class BridgeCommands {
 											.executes(context -> sendMail(socket, context)))));
 
 			var inbox = ClientCommandManager.literal("inbox")
-					.executes(context -> listInbox(socket, mailStore, null))
+					.executes(context -> listInbox(socket, mailStore, null, 1))
+					.then(inboxPage(socket, mailStore, null))
 					.then(ClientCommandManager.literal("unread")
-							.executes(context -> listInbox(socket, mailStore, Boolean.FALSE)))
+							.executes(context -> listInbox(socket, mailStore, Boolean.FALSE, 1))
+							.then(inboxPage(socket, mailStore, Boolean.FALSE)))
 					.then(ClientCommandManager.literal("read")
-							.executes(context -> listInbox(socket, mailStore, Boolean.TRUE)));
+							.executes(context -> listInbox(socket, mailStore, Boolean.TRUE, 1))
+							.then(inboxPage(socket, mailStore, Boolean.TRUE)));
 
 			var read = ClientCommandManager.literal("read")
 					.then(ClientCommandManager.argument("number", IntegerArgumentType.integer(1))
@@ -44,7 +53,12 @@ public final class BridgeCommands {
 			var clear = ClientCommandManager.literal("clear")
 					.then(ClientCommandManager.argument("target", StringArgumentType.word())
 							.executes(context -> clearMail(socket, mailStore,
-									StringArgumentType.getString(context, "target"))));
+									StringArgumentType.getString(context, "target"), null))
+							.then(ClientCommandManager.literal("from")
+									.then(ClientCommandManager.argument("player", StringArgumentType.word())
+											.executes(context -> clearMail(socket, mailStore,
+													StringArgumentType.getString(context, "target"),
+													StringArgumentType.getString(context, "player"))))));
 
 			dispatcher.register(ClientCommandManager.literal("mail")
 					.then(send)
@@ -137,7 +151,7 @@ public final class BridgeCommands {
 	}
 
 	/** Reads the send arguments, checks the title and hands the mail to the socket. */
-	private static int sendMail(BridgeSocket socket, com.mojang.brigadier.context.CommandContext<FabricClientCommandSource> context) {
+	private static int sendMail(BridgeSocket socket, CommandContext<FabricClientCommandSource> context) {
 		String player = StringArgumentType.getString(context, "player");
 		String title = StringArgumentType.getString(context, "title").trim();
 		String text = StringArgumentType.getString(context, "text");
@@ -149,9 +163,87 @@ public final class BridgeCommands {
 		return 1;
 	}
 
+	private static RequiredArgumentBuilder<FabricClientCommandSource, Integer> inboxPage(
+			BridgeSocket socket, MailStore mailStore, Boolean readFilter) {
+		return ClientCommandManager.argument("page", IntegerArgumentType.integer(1))
+				.suggests((context, builder) -> {
+					int pages = pageCount(mailStore, readFilter);
+					for (int page = 1; page <= pages; page++) {
+						builder.suggest(page);
+					}
+					return builder.buildFuture();
+				})
+				.executes(context -> listInbox(socket, mailStore, readFilter,
+						IntegerArgumentType.getInteger(context, "page")));
+	}
+
+	/**
+	 * Mails in the order the inbox prints them: unread first, then read, each by
+	 * arrival. Numbers in every command index into this list.
+	 */
+	private static List<MailStore.Mail> orderedMail(MailStore mailStore) {
+		List<MailStore.Mail> mails = new ArrayList<>(mailStore.all());
+		mails.sort(Comparator.comparing((MailStore.Mail mail) -> mail.read));
+		return mails;
+	}
+
+	private static List<MailStore.Mail> filteredMail(MailStore mailStore, Boolean readFilter) {
+		List<MailStore.Mail> listed = new ArrayList<>();
+		for (MailStore.Mail mail : orderedMail(mailStore)) {
+			if (readFilter == null || mail.read == readFilter) {
+				listed.add(mail);
+			}
+		}
+		return listed;
+	}
+
+	private static int pageCount(MailStore mailStore, Boolean readFilter) {
+		int count = filteredMail(mailStore, readFilter).size();
+		return Math.max(1, (count + MAIL_PAGE_SIZE - 1) / MAIL_PAGE_SIZE);
+	}
+
+	private static int listInbox(BridgeSocket socket, MailStore mailStore, Boolean readFilter, int page) {
+		// Pull anything that arrived since the last poll before listing.
+		socket.mailFetch();
+
+		String header = readFilter == null ? "Inbox" : (readFilter ? "Inbox <read>" : "Inbox <unread>");
+		ChatBridgeHooks.showMailNotice(header);
+
+		List<MailStore.Mail> mails = orderedMail(mailStore);
+		List<MailStore.Mail> listed = new ArrayList<>();
+		for (MailStore.Mail mail : mails) {
+			if (readFilter == null || mail.read == readFilter) {
+				listed.add(mail);
+			}
+		}
+
+		if (listed.isEmpty()) {
+			ChatBridgeHooks.showMailNotice(readFilter == null ? "No mail."
+					: (readFilter ? "No read mail." : "No unread mail."));
+			return 0;
+		}
+
+		int pages = Math.max(1, (listed.size() + MAIL_PAGE_SIZE - 1) / MAIL_PAGE_SIZE);
+		if (page > pages) {
+			ChatBridgeHooks.showMailNotice("No page " + page + ".");
+			return 0;
+		}
+
+		int from = (page - 1) * MAIL_PAGE_SIZE;
+		int to = Math.min(listed.size(), from + MAIL_PAGE_SIZE);
+		for (int i = from; i < to; i++) {
+			MailStore.Mail mail = listed.get(i);
+			// Number the line by its place in the whole inbox, so /mail read and
+			// /mail clear agree with what the filtered views print.
+			int number = mails.indexOf(mail) + 1;
+			ChatBridgeHooks.showMailEntry(number, mail.read, mail.title, mail.sender);
+		}
+		return to - from;
+	}
+
 	/** Shows the mail at this 1-based inbox position and marks it read. */
 	private static int readMail(BridgeSocket socket, MailStore mailStore, int number) {
-		List<MailStore.Mail> mails = mailStore.all();
+		List<MailStore.Mail> mails = orderedMail(mailStore);
 		if (number < 1 || number > mails.size()) {
 			ChatBridgeHooks.showMailNotice("No mail #" + number + " in the inbox.");
 			return 0;
@@ -163,37 +255,29 @@ public final class BridgeCommands {
 		return 1;
 	}
 
-	private static int listInbox(BridgeSocket socket, MailStore mailStore, Boolean readFilter) {
-		// Pull anything that arrived since the last poll before listing.
-		socket.mailFetch();
-		List<MailStore.Mail> mails = mailStore.all();
-		ChatBridgeHooks.showMailCount(mailStore.unreadCount());
-
-		int shown = 0;
-		for (int i = 0; i < mails.size(); i++) {
-			MailStore.Mail mail = mails.get(i);
-			if (readFilter != null && mail.read != readFilter) {
-				continue;
-			}
-			ChatBridgeHooks.showMailEntry(i + 1, mail.read, mail.title, mail.sender);
-			shown++;
-		}
-		if (shown == 0 && readFilter != null) {
-			ChatBridgeHooks.showMailNotice(readFilter ? "No read mail." : "No unread mail.");
-		}
-		return shown;
-	}
-
 	/**
-	 * {@code /mail clear all}, {@code /mail clear 3} or {@code /mail clear 2-5}.
-	 * Numbers follow the same 1-based order the inbox prints.
+	 * {@code /mail clear all}, {@code /mail clear 3} or {@code /mail clear 2-5},
+	 * optionally narrowed to one sender with {@code from <player>}. Numbers follow
+	 * the order the inbox prints, or the sender's own mails when filtering.
 	 */
-	private static int clearMail(BridgeSocket socket, MailStore mailStore, String target) {
-		List<MailStore.Mail> mails = mailStore.all();
+	private static int clearMail(BridgeSocket socket, MailStore mailStore, String target, String senderFilter) {
+		List<MailStore.Mail> pool;
+		if (senderFilter == null) {
+			pool = orderedMail(mailStore);
+		} else {
+			pool = new ArrayList<>();
+			for (MailStore.Mail mail : orderedMail(mailStore)) {
+				if (mail.sender.equalsIgnoreCase(senderFilter)) {
+					pool.add(mail);
+				}
+			}
+		}
+
+		String usage = "Use /mail clear all, /mail clear 3, /mail clear 2-5 or /mail clear all from <player>.";
 		List<Integer> ids = new ArrayList<>();
 
 		if (target.equalsIgnoreCase("all")) {
-			for (MailStore.Mail mail : mails) {
+			for (MailStore.Mail mail : pool) {
 				ids.add(mail.id);
 			}
 		} else {
@@ -209,15 +293,15 @@ public final class BridgeCommands {
 					to = from;
 				}
 			} catch (NumberFormatException e) {
-				ChatBridgeHooks.showMailNotice("Use /mail clear all, /mail clear 3 or /mail clear 2-5.");
+				ChatBridgeHooks.showMailNotice(usage);
 				return 0;
 			}
 			if (from < 1 || to < from) {
-				ChatBridgeHooks.showMailNotice("Use /mail clear all, /mail clear 3 or /mail clear 2-5.");
+				ChatBridgeHooks.showMailNotice(usage);
 				return 0;
 			}
-			for (int number = from; number <= to && number <= mails.size(); number++) {
-				ids.add(mails.get(number - 1).id);
+			for (int number = from; number <= to && number <= pool.size(); number++) {
+				ids.add(pool.get(number - 1).id);
 			}
 		}
 
