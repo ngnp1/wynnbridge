@@ -1,0 +1,11 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "wynnbridge:font/bridge_icon.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": ["\ue001"]
+    }
+  ]
+}

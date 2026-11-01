@@ -162,17 +162,27 @@ public final class ChatBridgeHooks {
 	/** Colour used for messages mirrored in from Discord. */
 	private static final int BRIDGE_COLOR = 0xACD8AA;
 
-	/** Bitmap font shipped in resources, holding the {@code BRIDGE} badge glyph. */
+	/** Bitmap fonts shipped in resources: the Discord icon and the BRIDGE badge. */
+	private static final StyleSpriteSource ICON_FONT =
+			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "icon"));
+
 	private static final StyleSpriteSource BADGE_FONT =
 			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "badge"));
 
+	private static final String ICON = "\uE001";
 	private static final String BADGE = "\uE000";
 
 	public static void showDiscordChat(String author, String content) {
 		TextColor color = TextColor.fromRgb(BRIDGE_COLOR);
-		post(Text.literal(BADGE).styled(style -> style.withFont(BADGE_FONT))
-				.append(Text.literal(" " + author + ": ").styled(style -> style.withColor(color)))
-				.append(Text.literal(content).styled(style -> style.withColor(color))));
+
+		// The root must stay unstyled: a style on the root is inherited by the
+		// appended siblings, which would draw the whole line in the badge font.
+		MutableText line = Text.empty();
+		line.append(Text.literal(ICON).styled(style -> style.withFont(ICON_FONT)));
+		line.append(Text.literal(BADGE).styled(style -> style.withFont(BADGE_FONT)));
+		line.append(Text.literal(" " + author + ": ").styled(style -> style.withColor(color)));
+		line.append(Text.literal(content).styled(style -> style.withColor(color)));
+		post(line);
 	}
 
 	public static void showMail(String sender, String content) {
