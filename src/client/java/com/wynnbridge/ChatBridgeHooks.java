@@ -184,8 +184,8 @@ public final class ChatBridgeHooks {
 	/** Colour of the sender name on a mail line. */
 	private static final int MAIL_COLOR = 0xFFB86C;
 
-	/** Colour of the body of a mail opened with {@code /mail read}. */
-	private static final int MAIL_READ_COLOR = 0xFFE3C5;
+	/** The brighter mail colour: a read mail's body and the unread count. */
+	private static final int MAIL_BRIGHT_COLOR = 0xFFE3C5;
 
 	/** Bitmap fonts shipped in resources: the Discord icon and the BRIDGE badge. */
 	private static final StyleSpriteSource ICON_FONT =
@@ -259,13 +259,29 @@ public final class ChatBridgeHooks {
 	/** A mail body, shown only once the mail is read. */
 	public static void showMail(String sender, String content) {
 		themedLine(MAIL_READ_ICON_FONT, MAIL_READ_ICON, MAIL_READ_BADGE_FONT, MAIL_READ_BADGE,
-				" " + sender + ": ", MAIL_COLOR, content, MAIL_READ_COLOR);
+				" " + sender + ": ", MAIL_COLOR, content, MAIL_BRIGHT_COLOR);
 	}
 
-	/** A mail notice such as {@code You have 2 new mails}, drawn in the mail theme. */
+	/** A mail notice such as {@code You have no new Mail.}, drawn in the mail theme. */
 	public static void showMailNotice(String text) {
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
 				" ", MAIL_COLOR, text, MAIL_COLOR);
+	}
+
+	/**
+	 * {@code You have 5 new Mails.} with only the count in the brighter mail
+	 * colour, for both the login notice and the {@code /mail inbox} header.
+	 */
+	public static void showMailCount(int count) {
+		TextColor amber = TextColor.fromRgb(MAIL_COLOR);
+		TextColor bright = TextColor.fromRgb(MAIL_BRIGHT_COLOR);
+
+		MutableText line = themedHead(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE);
+		line.append(Text.literal(" You have ").styled(style -> withChatFont(style.withColor(amber))));
+		line.append(Text.literal(Integer.toString(count)).styled(style -> withChatFont(style.withColor(bright))));
+		line.append(Text.literal(count == 1 ? " new Mail." : " new Mails.")
+				.styled(style -> withChatFont(style.withColor(amber))));
+		post(line);
 	}
 
 	/**
@@ -287,15 +303,22 @@ public final class ChatBridgeHooks {
 		TextColor prefixColor = TextColor.fromRgb(prefixRgb);
 		TextColor bodyColor = TextColor.fromRgb(bodyRgb);
 
+		MutableText line = themedHead(iconFont, icon, badgeFont, badge);
+		line.append(Text.literal(prefix).styled(style -> withChatFont(style.withColor(prefixColor))));
+		line.append(Text.literal(body).styled(style -> withChatFont(style.withColor(bodyColor))));
+		post(line);
+	}
+
+	/** Shift, arrow and badge: the unstyled glyph run every themed line starts with. */
+	private static MutableText themedHead(StyleSpriteSource iconFont, String icon,
+			StyleSpriteSource badgeFont, String badge) {
 		// The root must stay unstyled: a style on the root is inherited by the
 		// appended siblings, which would draw the whole line in the badge font.
 		MutableText line = Text.empty();
 		line.append(Text.literal(SHIFT).styled(style -> style.withFont(SHIFT_FONT)));
 		line.append(Text.literal(icon).styled(style -> style.withFont(iconFont)));
 		line.append(Text.literal(badge).styled(style -> style.withFont(badgeFont)));
-		line.append(Text.literal(prefix).styled(style -> withChatFont(style.withColor(prefixColor))));
-		line.append(Text.literal(body).styled(style -> withChatFont(style.withColor(bodyColor))));
-		post(line);
+		return line;
 	}
 
 	public static void showSystem(String message) {

@@ -185,8 +185,7 @@ public final class BridgeSocket {
 			return;
 		}
 		mailNoticePending = false;
-		int unread = mailStore.unreadCount();
-		ChatBridgeHooks.showMailNotice("You have " + unread + (unread == 1 ? " new mail" : " new mails"));
+		ChatBridgeHooks.showMailCount(mailStore.unreadCount());
 	}
 
 	private void scheduleMailNotice() {

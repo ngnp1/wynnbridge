@@ -46,15 +46,19 @@ CAT_X, CAT_Y = 1, 1
 EYES = [(2, 3), (4, 3)]
 NOSE = [(3, 4)]
 
-# A channel is a badge label plus the three colours its glyphs are drawn in:
-# badge/arrow fill, cat silhouette, and lettering/eyes/nose.
+# A channel is a badge label plus the colours its glyphs are drawn in:
+#   bg   badge and arrow fill
+#   mid  cat silhouette inside the arrow
+#   fg   eyes and nose inside the arrow
+#   ink  lettering on the badge
 CHANNELS = {
-    # Discord -> game, #fd4988 glyphs, white lettering, sender name #cf0042
+    # Discord -> game, #fd4988 glyphs, black lettering, sender name #cf0042
     "bridge": {
         "label": "BRIDGE",
         "bg": (0xFD, 0x49, 0x88, 255),
         "mid": (0xB1, 0x33, 0x5F, 255),
         "fg": (0xFF, 0xFF, 0xFF, 255),
+        "ink": (0x00, 0x00, 0x00, 255),
     },
     # Mail, amber glyphs
     "mail": {
@@ -62,6 +66,7 @@ CHANNELS = {
         "bg": (0xFF, 0xB8, 0x6C, 255),
         "mid": (0xC8, 0x85, 0x43, 255),
         "fg": (0x35, 0x22, 0x0D, 255),
+        "ink": (0x35, 0x22, 0x0D, 255),
     },
     # Mail opened with /mail read, paler glyphs
     "mail_read": {
@@ -69,6 +74,7 @@ CHANNELS = {
         "bg": (0xFF, 0xE3, 0xC5, 255),
         "mid": (0xD9, 0xA9, 0x7C, 255),
         "fg": (0x35, 0x22, 0x0D, 255),
+        "ink": (0x35, 0x22, 0x0D, 255),
     },
 }
 
@@ -117,7 +123,9 @@ def main() -> None:
     TEX.mkdir(parents=True, exist_ok=True)
     for name, channel in CHANNELS.items():
         images = {
-            name + "_badge.png": draw_badge(channel["label"], channel["bg"], channel["fg"]),
+            name + "_badge.png": draw_badge(
+                channel["label"], channel["bg"], channel.get("ink", channel["fg"])
+            ),
             name + "_icon.png": draw_icon(channel["bg"], channel["mid"], channel["fg"]),
         }
         for file_name, img in images.items():
