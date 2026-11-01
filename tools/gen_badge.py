@@ -23,7 +23,7 @@ LETTERS = {
     "E": ["11111", "10000", "11110", "10000", "11111"],
     "G": ["01110", "10001", "10000", "10011", "01110"],
     "I": ["111", "010", "010", "010", "111"],
-    "L": ["10000", "10000", "10000", "10000", "11111"],
+    "L": ["1000", "1000", "1000", "1000", "1111"],
     "M": ["10001", "11011", "10101", "10001", "10001"],
     "R": ["11110", "10001", "11110", "10010", "10001"],
 }
@@ -49,11 +49,11 @@ NOSE = [(3, 4)]
 # A channel is a badge label plus the three colours its glyphs are drawn in:
 # badge/arrow fill, cat silhouette, and lettering/eyes/nose.
 CHANNELS = {
-    # Discord -> game, #ff2873 glyphs, white lettering, sender name #cf0042
+    # Discord -> game, #ff3b80 glyphs, white lettering, sender name #cf0042
     "bridge": {
         "label": "BRIDGE",
-        "bg": (0xFF, 0x28, 0x73, 255),
-        "mid": (0xB2, 0x1C, 0x50, 255),
+        "bg": (0xFF, 0x3B, 0x80, 255),
+        "mid": (0xB3, 0x25, 0x58, 255),
         "fg": (0xFF, 0xFF, 0xFF, 255),
     },
     # Mail, #ffb86c

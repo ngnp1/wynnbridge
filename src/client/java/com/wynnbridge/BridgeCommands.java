@@ -33,21 +33,22 @@ public final class BridgeCommands {
 											}))))
 					.then(ClientCommandManager.literal("inbox")
 							.executes(context -> {
-								List<MailStore.Mail> mails = mailStore.all();
+								// Pull anything that arrived since the last poll before listing.
+								socket.mailFetch();
 								List<MailStore.Mail> unread = new ArrayList<>();
-								for (MailStore.Mail mail : mails) {
+								for (MailStore.Mail mail : mailStore.all()) {
 									if (!mail.read) {
 										unread.add(mail);
 									}
 								}
 								if (unread.isEmpty()) {
-									ChatBridgeHooks.showMailNotice("you have no unread mail");
+									ChatBridgeHooks.showMailNotice("You have no unread mail");
 									return 0;
 								}
-								ChatBridgeHooks.showMailNotice("you have " + unread.size()
+								ChatBridgeHooks.showMailNotice("You have " + unread.size()
 										+ (unread.size() == 1 ? " unread mail" : " unread mails"));
 								for (MailStore.Mail mail : unread) {
-									ChatBridgeHooks.showMailNotice("#" + mail.id + " from " + mail.sender);
+									ChatBridgeHooks.showMailEntry("#" + mail.id + " from " + mail.sender);
 								}
 								return 1;
 							}))

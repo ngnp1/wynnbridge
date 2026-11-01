@@ -179,7 +179,7 @@ public final class ChatBridgeHooks {
 	private static final int BRIDGE_COLOR = 0xCF0042;
 
 	/** Colour of the message itself, after the colon, and of the bridge glyph fill. */
-	private static final int BRIDGE_MESSAGE_COLOR = 0xFF2873;
+	private static final int BRIDGE_MESSAGE_COLOR = 0xFF3B80;
 
 	/** Colour used for mail lines. */
 	private static final int MAIL_COLOR = 0xFFB86C;
@@ -250,10 +250,19 @@ public final class ChatBridgeHooks {
 				" " + sender + ": ", MAIL_COLOR, content, MAIL_COLOR);
 	}
 
-	/** A mail notice such as {@code you have 2 unread mails}, drawn in the mail theme. */
+	/** A mail notice such as {@code You have 2 unread mails}, drawn in the mail theme. */
 	public static void showMailNotice(String text) {
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
 				" ", MAIL_COLOR, text, MAIL_COLOR);
+	}
+
+	/**
+	 * A continuation line under a mail notice: no badge, indented to line up with
+	 * the text of the badge line above it.
+	 */
+	public static void showMailEntry(String text) {
+		post(Text.literal("    " + text)
+				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_COLOR)))));
 	}
 
 	/**

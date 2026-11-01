@@ -31,6 +31,13 @@ public final class BridgeSocket {
 	 */
 	private static final long MAIL_NOTICE_DELAY_MS = 1_500L;
 
+	/**
+	 * The server pushes mail to an online recipient, but that push can be lost
+	 * (a reconnect leaves a stale socket behind), so ask for anything pending
+	 * now and then as well.
+	 */
+	private static final long MAIL_POLL_MS = 15_000L;
+
 	private final BridgeConfig config;
 	private final MailStore mailStore;
 	private final HttpClient http = HttpClient.newHttpClient();
@@ -46,6 +53,7 @@ public final class BridgeSocket {
 	private volatile long backoffMs = 1_000L;
 	private volatile boolean mailNoticePending;
 	private volatile long mailNoticeDueAt;
+	private volatile long nextMailFetchAt;
 
 	public BridgeSocket(BridgeConfig config, MailStore mailStore) {
 		this.config = config;
@@ -149,6 +157,7 @@ public final class BridgeSocket {
 	/** Called every client tick so reconnects and retries happen on the main thread. */
 	public void tick() {
 		flushMailNotice();
+		pollMail();
 
 		if (playerName == null || webSocket != null || connecting) {
 			return;
@@ -158,6 +167,18 @@ public final class BridgeSocket {
 		}
 	}
 
+	private void pollMail() {
+		if (!authenticated) {
+			return;
+		}
+		long now = System.currentTimeMillis();
+		if (now < nextMailFetchAt) {
+			return;
+		}
+		nextMailFetchAt = now + MAIL_POLL_MS;
+		mailFetch();
+	}
+
 	/** Shows one themed "you have x unread mails" line for the current inbox. */
 	private void flushMailNotice() {
 		if (!mailNoticePending || System.currentTimeMillis() < mailNoticeDueAt) {
@@ -165,7 +186,7 @@ public final class BridgeSocket {
 		}
 		mailNoticePending = false;
 		int unread = mailStore.unreadCount();
-		ChatBridgeHooks.showMailNotice("you have " + unread + (unread == 1 ? " unread mail" : " unread mails"));
+		ChatBridgeHooks.showMailNotice("You have " + unread + (unread == 1 ? " unread mail" : " unread mails"));
 	}
 
 	private void scheduleMailNotice() {
@@ -351,9 +372,11 @@ public final class BridgeSocket {
 				int id = payload.has("id") ? payload.get("id").getAsInt() : 0;
 				String sender = text(payload, "sender");
 				String content = text(payload, "content");
-				mailStore.add(id, sender, content, text(payload, "created_at"));
 				// Mail bodies stay hidden until /mail read, so only report the count.
-				scheduleMailNotice();
+				// Re-pushed mail is ignored, so it does not retrigger the notice.
+				if (mailStore.add(id, sender, content, text(payload, "created_at"))) {
+					scheduleMailNotice();
+				}
 			}
 			case "mail_sent" -> ChatBridgeHooks.showSystem("mail sent to " + text(payload, "recipient"));
 			case "mail_error", "error" -> ChatBridgeHooks.showSystem("bridge error: " + text(payload, "error"));

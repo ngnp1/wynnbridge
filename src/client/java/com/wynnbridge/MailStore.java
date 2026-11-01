@@ -40,10 +40,10 @@ public final class MailStore {
 		return FabricLoader.getInstance().getConfigDir().resolve("wynnbridge-mail.json");
 	}
 
-	public synchronized void add(int id, String sender, String content, String createdAt) {
+	public synchronized boolean add(int id, String sender, String content, String createdAt) {
 		for (Mail existing : mails) {
 			if (existing.id == id) {
-				return;
+				return false;
 			}
 		}
 		Mail mail = new Mail();
@@ -53,6 +53,7 @@ public final class MailStore {
 		mail.createdAt = createdAt;
 		mails.add(mail);
 		save();
+		return true;
 	}
 
 	public synchronized List<Mail> all() {
