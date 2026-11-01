@@ -206,9 +206,6 @@ public final class BridgeCommands {
 		// Pull anything that arrived since the last poll before listing.
 		socket.mailFetch();
 
-		String header = readFilter == null ? "Inbox" : (readFilter ? "Inbox <read>" : "Inbox <unread>");
-		ChatBridgeHooks.showMailNotice(header);
-
 		List<MailStore.Mail> mails = orderedMail(mailStore);
 		List<MailStore.Mail> listed = new ArrayList<>();
 		for (MailStore.Mail mail : mails) {
@@ -217,6 +214,7 @@ public final class BridgeCommands {
 			}
 		}
 
+		// Nothing to show: say so on its own, without the Inbox head above it.
 		if (listed.isEmpty()) {
 			ChatBridgeHooks.showMailNotice(readFilter == null ? "No mail."
 					: (readFilter ? "No read mail." : "No unread mail."));
@@ -228,6 +226,9 @@ public final class BridgeCommands {
 			ChatBridgeHooks.showMailNotice("No page " + page + ".");
 			return 0;
 		}
+
+		ChatBridgeHooks.showMailNotice(
+				readFilter == null ? "Inbox" : (readFilter ? "Inbox <read>" : "Inbox <unread>"));
 
 		int from = (page - 1) * MAIL_PAGE_SIZE;
 		int to = Math.min(listed.size(), from + MAIL_PAGE_SIZE);
