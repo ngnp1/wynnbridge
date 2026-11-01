@@ -176,7 +176,11 @@ public final class ChatBridgeHooks {
 	}
 
 	/** Colour used for messages mirrored in from Discord. */
+	/** Colour of the sender name on a bridged line, up to and including the colon. */
 	private static final int BRIDGE_COLOR = 0xCF0042;
+
+	/** Colour of the message itself, after the colon. */
+	private static final int BRIDGE_MESSAGE_COLOR = 0xF12E6C;
 
 	/** Colour used for mail lines, one shade warmer than the bridge. */
 	private static final int MAIL_COLOR = 0xFFB86C;
@@ -237,19 +241,22 @@ public final class ChatBridgeHooks {
 	}
 
 	public static void showDiscordChat(String author, String content) {
-		showChannel(SHIFT, ICON, ICON_FONT, BADGE, BADGE_FONT, BRIDGE_COLOR, author, content);
+		showChannel(SHIFT, ICON, ICON_FONT, BADGE, BADGE_FONT, BRIDGE_COLOR, BRIDGE_MESSAGE_COLOR, author, content);
 	}
 
 	public static void showMail(String sender, String content) {
-		showChannel(SHIFT, MAIL_ICON, MAIL_ICON_FONT, MAIL_BADGE, MAIL_BADGE_FONT, MAIL_COLOR, sender, content);
+		showChannel(SHIFT, MAIL_ICON, MAIL_ICON_FONT, MAIL_BADGE, MAIL_BADGE_FONT,
+				MAIL_COLOR, MAIL_COLOR, sender, content);
 	}
 
 	/**
 	 * One themed chat line: shift, arrow, badge, then {@code author: content}.
 	 */
 	private static void showChannel(String shift, String icon, StyleSpriteSource iconFont,
-			String badge, StyleSpriteSource badgeFont, int rgb, String author, String content) {
-		TextColor color = TextColor.fromRgb(rgb);
+			String badge, StyleSpriteSource badgeFont, int authorRgb, int contentRgb,
+			String author, String content) {
+		TextColor authorColor = TextColor.fromRgb(authorRgb);
+		TextColor contentColor = TextColor.fromRgb(contentRgb);
 
 		// The root must stay unstyled: a style on the root is inherited by the
 		// appended siblings, which would draw the whole line in the badge font.
@@ -258,8 +265,8 @@ public final class ChatBridgeHooks {
 		line.append(Text.literal(icon).styled(style -> style.withFont(iconFont)));
 		line.append(Text.literal(badge).styled(style -> style.withFont(badgeFont)));
 		line.append(Text.literal(" " + author + ": ")
-				.styled(style -> withChatFont(style.withColor(color))));
-		line.append(Text.literal(content).styled(style -> withChatFont(style.withColor(color))));
+				.styled(style -> withChatFont(style.withColor(authorColor))));
+		line.append(Text.literal(content).styled(style -> withChatFont(style.withColor(contentColor))));
 		post(line);
 	}
 
