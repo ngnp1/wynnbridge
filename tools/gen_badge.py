@@ -14,37 +14,36 @@ MID = (0x74, 0xA8, 0x80, 255)  # cat silhouette
 FG = (0x14, 0x26, 0x1A, 255)  # lettering, eyes, nose
 CLEAR = (0, 0, 0, 0)
 
-HEIGHT = 8
+HEIGHT = 7
 
-# 5x6 hollow letters: 1 px strokes with open counters, like Wynncraft's badges.
+# 5x5 hollow letters: 1 px strokes with open counters, like Wynncraft's badges.
 LETTERS = {
-    "B": ["11110", "10001", "11110", "10001", "10001", "11110"],
-    "R": ["11110", "10001", "11110", "10100", "10010", "10001"],
-    "I": ["111", "010", "010", "010", "010", "111"],
-    "D": ["11110", "10001", "10001", "10001", "10001", "11110"],
-    "G": ["01110", "10001", "10000", "10011", "10001", "01110"],
-    "E": ["11111", "10000", "11110", "10000", "10000", "11111"],
+    "B": ["11110", "10001", "11110", "10001", "11110"],
+    "R": ["11110", "10001", "11110", "10100", "10001"],
+    "I": ["111", "010", "010", "010", "111"],
+    "D": ["11110", "10001", "10001", "10001", "11110"],
+    "G": ["01110", "10001", "10000", "10011", "01110"],
+    "E": ["11111", "10000", "11110", "10000", "11111"],
 }
 LABEL = "BRIDGE"
 
 # Right-pointing arrow with a flat left edge, so the chat line starts at the
 # same place as Wynncraft's own messages.
 ARROW = [
-    "#######.....",
-    "#########...",
+    "########....",
+    "##########..",
     "###########.",
     "############",
-    "############",
     "###########.",
-    "#########...",
-    "#######.....",
+    "##########..",
+    "########....",
 ]
 
 # Cat face inside the arrow: ears, head, then eyes and nose punched in.
-CAT = ["#...#", "##.##", "#####", "#.#.#", ".###."]
+CAT = ["#...#", "#####", "#####", ".###."]
 CAT_X, CAT_Y = 1, 1
-EYES = [(2, 4), (4, 4)]
-NOSE = [(3, 5)]
+EYES = [(2, 3), (4, 3)]
+NOSE = [(3, 4)]
 
 ROOT = Path(__file__).resolve().parent.parent
 TEX = ROOT / "src/main/resources/assets/wynnbridge/textures/font"
@@ -53,11 +52,11 @@ TEX = ROOT / "src/main/resources/assets/wynnbridge/textures/font"
 def draw_badge() -> Image.Image:
     widths = [len(LETTERS[c][0]) for c in LABEL]
     text_w = sum(widths) + (len(LABEL) - 1)
-    w = text_w + 4
+    w = text_w + 2
     img = Image.new("RGBA", (w, HEIGHT), CLEAR)
     d = ImageDraw.Draw(img)
     d.rounded_rectangle([0, 0, w - 1, HEIGHT - 1], radius=2, fill=BG)
-    x = 2
+    x = 1
     for ch, cw in zip(LABEL, widths):
         for ry, row in enumerate(LETTERS[ch]):
             for rx, bit in enumerate(row):

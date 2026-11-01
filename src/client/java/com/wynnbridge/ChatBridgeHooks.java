@@ -177,6 +177,12 @@ public final class ChatBridgeHooks {
 	private static final String ICON = "\uE001";
 	private static final String BADGE = "\uE000";
 
+	/** Zero-width glyph with a negative advance, used to nudge the line left. */
+	private static final StyleSpriteSource SHIFT_FONT =
+			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "shift"));
+
+	private static final String SHIFT = "\uE002";
+
 	/**
 	 * Font Wynncraft uses for its own chat lines, mirrored so the bridged line has
 	 * the same glyph height and spacing instead of the vanilla defaults.
@@ -213,6 +219,7 @@ public final class ChatBridgeHooks {
 		// The root must stay unstyled: a style on the root is inherited by the
 		// appended siblings, which would draw the whole line in the badge font.
 		MutableText line = Text.empty();
+		line.append(Text.literal(SHIFT).styled(style -> style.withFont(SHIFT_FONT)));
 		line.append(Text.literal(ICON).styled(style -> style.withFont(ICON_FONT)));
 		line.append(Text.literal(BADGE).styled(style -> style.withFont(BADGE_FONT)));
 		line.append(Text.literal(" " + author + ": ")
