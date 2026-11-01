@@ -2,8 +2,8 @@
 
 Client-side mod that connects Minecraft to the bot's chat bridge:
 
-- **Game -> Discord:** guild chat lines are read client-side and forwarded to the bridge channel.
-- **Discord -> game:** messages from the bridge channel are injected into your chat HUD only —
+- **Wynn -> Discord:** guild chat lines are read client-side and forwarded to the bridge channel.
+- **Discord -> Wynn:** messages from the bridge channel are injected into your chat HUD only —
   nothing is sent to Wynncraft.
 - **Mail:** `/mail send <player> <title> <text>` stores a message server-side. Titles may be
   quoted to hold several words and are capped at 60 characters. The recipient sees a themed
@@ -64,7 +64,7 @@ token and a ready-to-paste command such as:
 /bridge join wss://bridge.example.com/ws#TOKEN
 ```
 
-Type that in Minecraft (it is a client command, so nothing is sent to Wynncraft). The mod saves
+Type that in Minecraft. The mod saves
 the URL and token, then reconnects. Check `/bridge status` - it should report `connected: yes`.
 
 You can also edit `.minecraft/config/wynnbridge.json` by hand:
@@ -82,19 +82,6 @@ You can also edit `.minecraft/config/wynnbridge.json` by hand:
 The URL has to be reachable by every player. Tailscale works, but a TLS tunnel means players
 install nothing extra: Cloudflare Tunnel (`wss://bridge.example.com/ws`) or
 `tailscale funnel 8765` on the server (`wss://<machine>.<tailnet>.ts.net/ws`).
-
-## Finding the guild chat format
-
-Wynncraft changes chat formatting between updates, so the regex is a config value rather than
-something hard-coded. To figure it out:
-
-1. Set `"debugChat": true`.
-2. Talk in guild chat and check `.minecraft/logs/latest.log` for lines starting with `chat: `.
-3. Copy the exact prefix into `guildPattern` (Java regex), e.g.
-   `"^\\[Guild\\]"`, `"^Guild >"`, or `"^§?\\[?Guild"`.
-
-The default `(?i)\bguild\b` matches any line containing the word "guild", which is a decent
-starting point but may also catch other messages.
 
 ## Commands
 
