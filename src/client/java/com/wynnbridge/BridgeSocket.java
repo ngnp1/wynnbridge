@@ -278,14 +278,15 @@ public final class BridgeSocket {
 		send(payload);
 	}
 
-	public void sendMail(String recipient, String content) {
+	public void sendMail(String recipient, String title, String content) {
 		if (!authenticated) {
-			ChatBridgeHooks.showSystem("not connected to the bridge");
+			ChatBridgeHooks.showSystem("Not connected to the bridge");
 			return;
 		}
 		JsonObject payload = new JsonObject();
 		payload.addProperty("op", "mail_send");
 		payload.addProperty("recipient", recipient);
+		payload.addProperty("title", title == null ? "" : title);
 		payload.addProperty("content", content);
 		send(payload);
 	}
@@ -370,10 +371,11 @@ public final class BridgeSocket {
 			case "mail" -> {
 				int id = payload.has("id") ? payload.get("id").getAsInt() : 0;
 				String sender = text(payload, "sender");
+				String title = text(payload, "title");
 				String content = text(payload, "content");
 				// Mail bodies stay hidden until /mail read, so only report the count.
 				// Re-pushed mail is ignored, so it does not retrigger the notice.
-				if (mailStore.add(id, sender, content, text(payload, "created_at"))) {
+				if (mailStore.add(id, sender, title, content, text(payload, "created_at"))) {
 					scheduleMailNotice();
 				}
 			}

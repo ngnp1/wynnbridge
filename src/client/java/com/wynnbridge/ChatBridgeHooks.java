@@ -344,7 +344,25 @@ public final class ChatBridgeHooks {
 	/** A notice from the mod itself, drawn on the SYSTEM badge. */
 	public static void showSystem(String message) {
 		themedLine(SYSTEM_ICON_FONT, SYSTEM_ICON, SYSTEM_BADGE_FONT, SYSTEM_BADGE,
-				" ", SYSTEM_COLOR, message, SYSTEM_COLOR);
+				" ", SYSTEM_COLOR, sentence(message), SYSTEM_COLOR);
+	}
+
+	/** Capitalises the first letter and closes the sentence with a full stop. */
+	static String sentence(String message) {
+		if (message == null || message.isEmpty()) {
+			return message == null ? "" : message;
+		}
+		String text = message.trim();
+		if (text.isEmpty()) {
+			return text;
+		}
+
+		int first = text.codePointAt(0);
+		String head = new String(Character.toChars(Character.toUpperCase(first))) + text.substring(Character.charCount(first));
+
+		char last = head.charAt(head.length() - 1);
+		boolean closed = last == '.' || last == '!' || last == '?' || last == '\u2026';
+		return closed ? head : head + ".";
 	}
 
 	private static void post(MutableText text) {

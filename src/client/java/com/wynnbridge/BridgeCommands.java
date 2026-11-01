@@ -15,29 +15,41 @@ import java.util.List;
  * dispatcher and never reach Wynncraft.
  */
 public final class BridgeCommands {
+	/** Longest mail title the mod accepts, matching the bot's own limit. */
+	private static final int MAX_TITLE_LENGTH = 30;
+
 	private BridgeCommands() {
 	}
 
 	public static void register(BridgeSocket socket, MailStore mailStore) {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
 			dispatcher.register(ClientCommandManager.literal("mail")
-					.then(ClientCommandManager.literal("send")
-							.then(ClientCommandManager.argument("player", StringArgumentType.word())
-									.then(ClientCommandManager.argument("text", StringArgumentType.greedyString())
-											.executes(context -> {
-												String player = StringArgumentType.getString(context, "player");
-												String text = StringArgumentType.getString(context, "text");
-												socket.sendMail(player, text);
-												return 1;
-											}))))
-					.then(ClientCommandManager.literal("inbox")
+				.then(ClientCommandManager.literal("send")
+						.then(ClientCommandManager.argument("player", StringArgumentType.word())
+								.then(ClientCommandManager.argument("title", StringArgumentType.string())
+										.then(ClientCommandManager.argument("text", StringArgumentType.greedyString())
+												.executes(context -> {
+													String player = StringArgumentType.getString(context, "player");
+													String title = StringArgumentType.getString(context, "title").trim();
+													String text = StringArgumentType.getString(context, "text");
+													if (title.length() > MAX_TITLE_LENGTH) {
+														ChatBridgeHooks.showSystem("Titles are limited to " + MAX_TITLE_LENGTH + " characters");
+														return 0;
+													}
+													socket.sendMail(player, title, text);
+													return 1;
+												})))))
+				.then(ClientCommandManager.literal("inbox")
 							.executes(context -> {
 								// Pull anything that arrived since the last poll before listing.
 								socket.mailFetch();
 								List<MailStore.Mail> unread = unreadMail(mailStore);
 								ChatBridgeHooks.showMailCount(unread.size());
 								for (int i = 0; i < unread.size(); i++) {
-									ChatBridgeHooks.showMailEntry(i + 1, " from " + unread.get(i).sender);
+									MailStore.Mail mail = unread.get(i);
+									String title = mail.title == null ? "" : mail.title.trim();
+									String suffix = (title.isEmpty() ? "" : " " + title) + " from " + mail.sender;
+									ChatBridgeHooks.showMailEntry(i + 1, suffix);
 								}
 								return unread.isEmpty() ? 0 : 1;
 							}))

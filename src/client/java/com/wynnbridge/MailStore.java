@@ -28,6 +28,7 @@ public final class MailStore {
 	public static final class Mail {
 		public int id;
 		public String sender = "";
+		public String title = "";
 		public String content = "";
 		public String createdAt = "";
 		public boolean read;
@@ -43,7 +44,7 @@ public final class MailStore {
 		return FabricLoader.getInstance().getConfigDir().resolve("wynnbridge-mail.json");
 	}
 
-	public synchronized boolean add(int id, String sender, String content, String createdAt) {
+	public synchronized boolean add(int id, String sender, String title, String content, String createdAt) {
 		for (Mail existing : mails) {
 			if (existing.id == id) {
 				return false;
@@ -52,6 +53,7 @@ public final class MailStore {
 		Mail mail = new Mail();
 		mail.id = id;
 		mail.sender = sender;
+		mail.title = title == null ? "" : title;
 		mail.content = content;
 		mail.createdAt = createdAt;
 		mails.add(mail);
