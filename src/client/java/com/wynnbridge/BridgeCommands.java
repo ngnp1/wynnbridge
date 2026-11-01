@@ -73,7 +73,7 @@ public final class BridgeCommands {
 										}
 										feedback(source, "invalid link, expected wss://host/ws#token");
 										return 0;
-									}))))
+									})))
 					.then(ClientCommandManager.literal("status")
 							.executes(context -> {
 								FabricClientCommandSource source = context.getSource();
