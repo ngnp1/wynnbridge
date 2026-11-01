@@ -6,7 +6,7 @@ Client-side mod that connects Minecraft to the bot's chat bridge:
 - **Discord -> game:** messages from the bridge channel are injected into your chat HUD only —
   nothing is sent to Wynncraft.
 - **Mail:** `/mail send <player> <text>` stores a message server-side. The recipient sees a themed
-  `You have <n> unread mails` line when they log in or when mail arrives; the body is shown by
+  `You have <n> new mails` line when they log in or when mail arrives; the body is shown by
   `/mail read <id>`, which also drops it from the inbox. Pending mail is also polled every
   15 seconds, so a mail the server could not push still shows up without a relog.
 
@@ -114,8 +114,8 @@ Wynncraft command, rename the literal in `BridgeCommands.java`.
 - **Never auto-sends to Wynncraft.** Discord messages go straight to the chat HUD
   (`ChatHud.addMessage`), not through the server connection.
 - Bridged Discord chat is themed pink: the arrow, badge and message use `#ff3b80` with white
-  badge lettering, the sender name `#cf0042`, and mail amber `#ffb86c`. Glyphs come from
-  `tools/gen_badge.py`.
+  badge lettering, the sender name `#cf0042`. Mail glyphs and its name-less lines are
+  `#ffe3c5`, the sender on a read mail `#ffb86c`. Glyphs come from `tools/gen_badge.py`.
 - `/bridge update` trusts the GitHub release over HTTPS and swaps the jar in `mods/`; the
   new version loads on the next start.
 - The server dedupes guild chat for 5 seconds, because every connected client sees the same

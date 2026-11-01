@@ -179,14 +179,14 @@ public final class BridgeSocket {
 		mailFetch();
 	}
 
-	/** Shows one themed "you have x unread mails" line for the current inbox. */
+	/** Shows one themed "You have x new mails" line for the current inbox. */
 	private void flushMailNotice() {
 		if (!mailNoticePending || System.currentTimeMillis() < mailNoticeDueAt) {
 			return;
 		}
 		mailNoticePending = false;
 		int unread = mailStore.unreadCount();
-		ChatBridgeHooks.showMailNotice("You have " + unread + (unread == 1 ? " unread mail" : " unread mails"));
+		ChatBridgeHooks.showMailNotice("You have " + unread + (unread == 1 ? " new mail" : " new mails"));
 	}
 
 	private void scheduleMailNotice() {

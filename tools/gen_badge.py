@@ -56,11 +56,11 @@ CHANNELS = {
         "mid": (0xB3, 0x25, 0x58, 255),
         "fg": (0xFF, 0xFF, 0xFF, 255),
     },
-    # Mail, #ffb86c
+    # Mail, #ffe3c5 glyphs with dark lettering
     "mail": {
         "label": "MAIL",
-        "bg": (0xFF, 0xB8, 0x6C, 255),
-        "mid": (0xC8, 0x85, 0x43, 255),
+        "bg": (0xFF, 0xE3, 0xC5, 255),
+        "mid": (0xD9, 0xA9, 0x7C, 255),
         "fg": (0x35, 0x22, 0x0D, 255),
     },
 }

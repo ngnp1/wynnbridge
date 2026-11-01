@@ -181,8 +181,11 @@ public final class ChatBridgeHooks {
 	/** Colour of the message itself, after the colon, and of the bridge glyph fill. */
 	private static final int BRIDGE_MESSAGE_COLOR = 0xFF3B80;
 
-	/** Colour used for mail lines. */
+	/** Colour of the sender name on a mail line. */
 	private static final int MAIL_COLOR = 0xFFB86C;
+
+	/** Colour of the mail glyph fill and of every mail line without a sender name. */
+	private static final int MAIL_TEXT_COLOR = 0xFFE3C5;
 
 	/** Bitmap fonts shipped in resources: the Discord icon and the BRIDGE badge. */
 	private static final StyleSpriteSource ICON_FONT =
@@ -247,13 +250,13 @@ public final class ChatBridgeHooks {
 	/** A mail body, shown only once the mail is read. */
 	public static void showMail(String sender, String content) {
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
-				" " + sender + ": ", MAIL_COLOR, content, MAIL_COLOR);
+				" " + sender + ": ", MAIL_COLOR, content, MAIL_TEXT_COLOR);
 	}
 
-	/** A mail notice such as {@code You have 2 unread mails}, drawn in the mail theme. */
+	/** A mail notice such as {@code You have 2 new mails}, drawn in the mail theme. */
 	public static void showMailNotice(String text) {
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
-				" ", MAIL_COLOR, text, MAIL_COLOR);
+				" ", MAIL_TEXT_COLOR, text, MAIL_TEXT_COLOR);
 	}
 
 	/**
@@ -262,7 +265,7 @@ public final class ChatBridgeHooks {
 	 */
 	public static void showMailEntry(String text) {
 		post(Text.literal("    " + text)
-				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_COLOR)))));
+				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_TEXT_COLOR)))));
 	}
 
 	/**

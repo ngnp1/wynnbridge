@@ -42,11 +42,11 @@ public final class BridgeCommands {
 									}
 								}
 								if (unread.isEmpty()) {
-									ChatBridgeHooks.showMailNotice("You have no unread mail");
+									ChatBridgeHooks.showMailNotice("You have no new mail");
 									return 0;
 								}
 								ChatBridgeHooks.showMailNotice("You have " + unread.size()
-										+ (unread.size() == 1 ? " unread mail" : " unread mails"));
+										+ (unread.size() == 1 ? " new mail" : " new mails"));
 								for (MailStore.Mail mail : unread) {
 									ChatBridgeHooks.showMailEntry("#" + mail.id + " from " + mail.sender);
 								}
