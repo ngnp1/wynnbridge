@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.text.Style;
 import net.minecraft.text.StyleSpriteSource;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.Identifier;
@@ -43,6 +44,10 @@ public final class ChatBridgeHooks {
 				WynnBridgeClient.LOGGER.info("chat: [{}] {} {}", forward ? "fwd" : "skip", hexPrefix(raw), cleaned);
 			}
 			if (forward) {
+				StyleSpriteSource font = findFont(message);
+				if (font instanceof StyleSpriteSource.Font) {
+					chatFont = font;
+				}
 				socket.sendChat(cleaned);
 			}
 		});
@@ -172,6 +177,36 @@ public final class ChatBridgeHooks {
 	private static final String ICON = "\uE001";
 	private static final String BADGE = "\uE000";
 
+	/**
+	 * Font Wynncraft uses for its own chat lines, mirrored so the bridged line has
+	 * the same glyph height and spacing instead of the vanilla defaults.
+	 */
+	private static volatile StyleSpriteSource chatFont;
+
+	public static String chatFontName() {
+		return chatFont instanceof StyleSpriteSource.Font font ? font.id().toString() : "default";
+	}
+
+	private static Style withChatFont(Style style) {
+		StyleSpriteSource font = chatFont;
+		return font == null ? style : style.withFont(font);
+	}
+
+	/** First font declared anywhere in the component tree, if any. */
+	private static StyleSpriteSource findFont(Text text) {
+		StyleSpriteSource font = text.getStyle().getFont();
+		if (font != null) {
+			return font;
+		}
+		for (Text sibling : text.getSiblings()) {
+			StyleSpriteSource found = findFont(sibling);
+			if (found != null) {
+				return found;
+			}
+		}
+		return null;
+	}
+
 	public static void showDiscordChat(String author, String content) {
 		TextColor color = TextColor.fromRgb(BRIDGE_COLOR);
 
@@ -180,8 +215,9 @@ public final class ChatBridgeHooks {
 		MutableText line = Text.empty();
 		line.append(Text.literal(ICON).styled(style -> style.withFont(ICON_FONT)));
 		line.append(Text.literal(BADGE).styled(style -> style.withFont(BADGE_FONT)));
-		line.append(Text.literal(" " + author + ": ").styled(style -> style.withColor(color)));
-		line.append(Text.literal(content).styled(style -> style.withColor(color)));
+		line.append(Text.literal(" " + author + ": ")
+				.styled(style -> withChatFont(style.withColor(color))));
+		line.append(Text.literal(content).styled(style -> withChatFont(style.withColor(color))));
 		post(line);
 	}
 

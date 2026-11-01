@@ -84,6 +84,7 @@ public final class BridgeCommands {
 								feedback(source, "forwarding: " + (config.forwardGuildChat ? "on" : "off")
 										+ ", debug: " + (config.debugChat ? "on" : "off"));
 								feedback(source, "pattern: " + config.guildPattern);
+								feedback(source, "chat font: " + ChatBridgeHooks.chatFontName());
 								return 1;
 							}))
 					.then(ClientCommandManager.literal("reload")
