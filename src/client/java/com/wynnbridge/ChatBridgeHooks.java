@@ -15,7 +15,7 @@ import java.util.Locale;
 /**
  * Incoming chat handling.
  *
- * Guild chat is read client-side from {@link ClientReceiveMessageEvents#GAME}
+ * Guild chat is read client-side from {@link ClientReceiveMessageEvents#ALLOW_GAME}
  * and forwarded to the bridge. Discord and mail messages are injected straight
  * into the chat HUD, so they are never sent to the server.
  */
@@ -26,31 +26,42 @@ public final class ChatBridgeHooks {
 	}
 
 	public static void register(BridgeSocket socket, BridgeConfig config) {
-		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-			if (overlay) {
-				return;
+		// ALLOW_GAME fires before MODIFY_GAME, i.e. before other client mods rewrite
+		// the line, so every client forwards the text the server actually sent.
+		// Reading the rewritten text (GAME) made the payload depend on each player's
+		// own chat-mod config: Wynntils' nickname reveal turns "nick" into
+		// "RealName/nick" (or "RealName" alone), so two players with different
+		// settings sent different text for the same message and the server's content
+		// dedupe let both through. Returning true keeps the message on screen.
+		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
+			if (!overlay) {
+				forward(socket, config, message);
 			}
-			String raw = message.getString();
-			if (raw == null || raw.isEmpty()) {
-				return;
-			}
-			String cleaned = stripGlyphs(raw);
-			boolean forward = config.forwardGuildChat
-					&& !cleaned.isEmpty()
-					&& isGuildChat(raw)
-					&& config.pattern().matcher(cleaned).find();
-
-			if (config.debugChat) {
-				WynnBridgeClient.LOGGER.info("chat: [{}] {} {}", forward ? "fwd" : "skip", hexPrefix(raw), cleaned);
-			}
-			if (forward) {
-				StyleSpriteSource font = findFont(message);
-				if (font instanceof StyleSpriteSource.Font) {
-					chatFont = font;
-				}
-				socket.sendChat(cleaned);
-			}
+			return true;
 		});
+	}
+
+	private static void forward(BridgeSocket socket, BridgeConfig config, Text message) {
+		String raw = message.getString();
+		if (raw == null || raw.isEmpty()) {
+			return;
+		}
+		String cleaned = stripGlyphs(raw);
+		boolean shouldForward = config.forwardGuildChat
+				&& !cleaned.isEmpty()
+				&& isGuildChat(raw)
+				&& config.pattern().matcher(cleaned).find();
+
+		if (config.debugChat) {
+			WynnBridgeClient.LOGGER.info("chat: [{}] {} {}", shouldForward ? "fwd" : "skip", hexPrefix(raw), cleaned);
+		}
+		if (shouldForward) {
+			StyleSpriteSource font = findFont(message);
+			if (font instanceof StyleSpriteSource.Font) {
+				chatFont = font;
+			}
+			socket.sendChat(cleaned);
+		}
 	}
 
 	/**
