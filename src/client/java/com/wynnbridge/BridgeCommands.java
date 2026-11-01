@@ -47,9 +47,7 @@ public final class BridgeCommands {
 								ChatBridgeHooks.showMailCount(unread.size());
 								for (int i = 0; i < unread.size(); i++) {
 									MailStore.Mail mail = unread.get(i);
-									String title = mail.title == null ? "" : mail.title.trim();
-									String suffix = (title.isEmpty() ? "" : " " + title) + " from " + mail.sender;
-									ChatBridgeHooks.showMailEntry(i + 1, suffix);
+									ChatBridgeHooks.showMailEntry(i + 1, mail.title, mail.sender);
 								}
 								return unread.isEmpty() ? 0 : 1;
 							}))

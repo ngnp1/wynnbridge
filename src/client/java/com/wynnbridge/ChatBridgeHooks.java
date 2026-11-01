@@ -299,17 +299,21 @@ public final class ChatBridgeHooks {
 
 	/**
 	 * A continuation line under a mail notice: no badge, indented to line up with
-	 * the text of the badge line above it, with the inbox position in the brighter
-	 * colour. Positions count the unread mail only, so they start at 1 again once
-	 * the earlier ones are read.
+	 * the text of the badge line above it, with the inbox position and the word
+	 * "from" in the brighter colour. Positions count the unread mail only, so they
+	 * start at 1 again once the earlier ones are read.
 	 */
-	public static void showMailEntry(int number, String suffix) {
+	public static void showMailEntry(int number, String title, String sender) {
 		TextColor amber = TextColor.fromRgb(MAIL_COLOR);
 		TextColor bright = TextColor.fromRgb(MAIL_BRIGHT_COLOR);
+		String trimmed = title == null ? "" : title.trim();
 
 		MutableText line = Text.empty();
 		line.append(Text.literal("    #" + number).styled(style -> withChatFont(style.withColor(bright))));
-		line.append(Text.literal(suffix).styled(style -> withChatFont(style.withColor(amber))));
+		line.append(Text.literal(trimmed.isEmpty() ? " " : " " + trimmed + " ")
+				.styled(style -> withChatFont(style.withColor(amber))));
+		line.append(Text.literal("from").styled(style -> withChatFont(style.withColor(bright))));
+		line.append(Text.literal(" " + sender).styled(style -> withChatFont(style.withColor(amber))));
 		post(line);
 	}
 
