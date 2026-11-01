@@ -176,7 +176,10 @@ public final class ChatBridgeHooks {
 	}
 
 	/** Colour used for messages mirrored in from Discord. */
-	private static final int BRIDGE_COLOR = 0xACD8AA;
+	private static final int BRIDGE_COLOR = 0x4ED288;
+
+	/** Colour used for mail lines, one shade warmer than the bridge. */
+	private static final int MAIL_COLOR = 0xFFB86C;
 
 	/** Bitmap fonts shipped in resources: the Discord icon and the BRIDGE badge. */
 	private static final StyleSpriteSource ICON_FONT =
@@ -185,8 +188,17 @@ public final class ChatBridgeHooks {
 	private static final StyleSpriteSource BADGE_FONT =
 			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "badge"));
 
+	/** The same arrow and badge, drawn in the mail colour. */
+	private static final StyleSpriteSource MAIL_ICON_FONT =
+			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "mail_icon"));
+
+	private static final StyleSpriteSource MAIL_BADGE_FONT =
+			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "mail_badge"));
+
 	private static final String ICON = "\uE001";
 	private static final String BADGE = "\uE000";
+	private static final String MAIL_ICON = "\uE004";
+	private static final String MAIL_BADGE = "\uE003";
 
 	/** Zero-width glyph with a negative advance, used to nudge the line left. */
 	private static final StyleSpriteSource SHIFT_FONT =
@@ -225,24 +237,30 @@ public final class ChatBridgeHooks {
 	}
 
 	public static void showDiscordChat(String author, String content) {
-		TextColor color = TextColor.fromRgb(BRIDGE_COLOR);
+		showChannel(SHIFT, ICON, ICON_FONT, BADGE, BADGE_FONT, BRIDGE_COLOR, author, content);
+	}
+
+	public static void showMail(String sender, String content) {
+		showChannel(SHIFT, MAIL_ICON, MAIL_ICON_FONT, MAIL_BADGE, MAIL_BADGE_FONT, MAIL_COLOR, sender, content);
+	}
+
+	/**
+	 * One themed chat line: shift, arrow, badge, then {@code author: content}.
+	 */
+	private static void showChannel(String shift, String icon, StyleSpriteSource iconFont,
+			String badge, StyleSpriteSource badgeFont, int rgb, String author, String content) {
+		TextColor color = TextColor.fromRgb(rgb);
 
 		// The root must stay unstyled: a style on the root is inherited by the
 		// appended siblings, which would draw the whole line in the badge font.
 		MutableText line = Text.empty();
-		line.append(Text.literal(SHIFT).styled(style -> style.withFont(SHIFT_FONT)));
-		line.append(Text.literal(ICON).styled(style -> style.withFont(ICON_FONT)));
-		line.append(Text.literal(BADGE).styled(style -> style.withFont(BADGE_FONT)));
+		line.append(Text.literal(shift).styled(style -> style.withFont(SHIFT_FONT)));
+		line.append(Text.literal(icon).styled(style -> style.withFont(iconFont)));
+		line.append(Text.literal(badge).styled(style -> style.withFont(badgeFont)));
 		line.append(Text.literal(" " + author + ": ")
 				.styled(style -> withChatFont(style.withColor(color))));
 		line.append(Text.literal(content).styled(style -> withChatFont(style.withColor(color))));
 		post(line);
-	}
-
-	public static void showMail(String sender, String content) {
-		post(Text.literal("[Mail] ").formatted(Formatting.GOLD)
-				.append(Text.literal(sender).formatted(Formatting.WHITE))
-				.append(Text.literal(": " + content)));
 	}
 
 	public static void showSystem(String message) {

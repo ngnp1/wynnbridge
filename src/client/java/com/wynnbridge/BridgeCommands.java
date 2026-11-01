@@ -134,6 +134,12 @@ public final class BridgeCommands {
 								socket.reconnect();
 								feedback(context.getSource(), "reconnecting to the bridge");
 								return 1;
+							}))
+					.then(ClientCommandManager.literal("update")
+							.executes(context -> {
+								feedback(context.getSource(), "current version: " + BridgeUpdater.currentVersion());
+								BridgeUpdater.checkAndInstall();
+								return 1;
 							})));
 		});
 	}
