@@ -69,13 +69,28 @@ public final class MailStore {
 		return count;
 	}
 
-	public synchronized boolean markRead(int id) {
+	/** A copy of the stored mail with this id, or {@code null}. */
+	public synchronized Mail find(int id) {
 		for (Mail mail : mails) {
 			if (mail.id == id) {
-				if (!mail.read) {
-					mail.read = true;
-					save();
-				}
+				Mail copy = new Mail();
+				copy.id = mail.id;
+				copy.sender = mail.sender;
+				copy.content = mail.content;
+				copy.createdAt = mail.createdAt;
+				copy.read = mail.read;
+				return copy;
+			}
+		}
+		return null;
+	}
+
+	/** Drops a mail from the local inbox once it has been read. */
+	public synchronized boolean remove(int id) {
+		for (int i = 0; i < mails.size(); i++) {
+			if (mails.get(i).id == id) {
+				mails.remove(i);
+				save();
 				return true;
 			}
 		}

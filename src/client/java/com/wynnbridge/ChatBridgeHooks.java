@@ -175,14 +175,13 @@ public final class ChatBridgeHooks {
 		return out.toString().replaceAll("\\s+", " ").trim();
 	}
 
-	/** Colour used for messages mirrored in from Discord. */
 	/** Colour of the sender name on a bridged line, up to and including the colon. */
 	private static final int BRIDGE_COLOR = 0xCF0042;
 
-	/** Colour of the message itself, after the colon. */
-	private static final int BRIDGE_MESSAGE_COLOR = 0xF12E6C;
+	/** Colour of the message itself, after the colon, and of the bridge glyph fill. */
+	private static final int BRIDGE_MESSAGE_COLOR = 0xFF2873;
 
-	/** Colour used for mail lines, one shade warmer than the bridge. */
+	/** Colour used for mail lines. */
 	private static final int MAIL_COLOR = 0xFFB86C;
 
 	/** Bitmap fonts shipped in resources: the Discord icon and the BRIDGE badge. */
@@ -241,32 +240,40 @@ public final class ChatBridgeHooks {
 	}
 
 	public static void showDiscordChat(String author, String content) {
-		showChannel(SHIFT, ICON, ICON_FONT, BADGE, BADGE_FONT, BRIDGE_COLOR, BRIDGE_MESSAGE_COLOR, author, content);
+		themedLine(ICON_FONT, ICON, BADGE_FONT, BADGE,
+				" " + author + ": ", BRIDGE_COLOR, content, BRIDGE_MESSAGE_COLOR);
 	}
 
+	/** A mail body, shown only once the mail is read. */
 	public static void showMail(String sender, String content) {
-		showChannel(SHIFT, MAIL_ICON, MAIL_ICON_FONT, MAIL_BADGE, MAIL_BADGE_FONT,
-				MAIL_COLOR, MAIL_COLOR, sender, content);
+		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
+				" " + sender + ": ", MAIL_COLOR, content, MAIL_COLOR);
+	}
+
+	/** A mail notice such as {@code you have 2 unread mails}, drawn in the mail theme. */
+	public static void showMailNotice(String text) {
+		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
+				" ", MAIL_COLOR, text, MAIL_COLOR);
 	}
 
 	/**
-	 * One themed chat line: shift, arrow, badge, then {@code author: content}.
+	 * One themed chat line: shift, arrow, badge, then a prefix and the body text.
+	 * Notices pass a single space as the prefix, so they read as {@code badge text}.
 	 */
-	private static void showChannel(String shift, String icon, StyleSpriteSource iconFont,
-			String badge, StyleSpriteSource badgeFont, int authorRgb, int contentRgb,
-			String author, String content) {
-		TextColor authorColor = TextColor.fromRgb(authorRgb);
-		TextColor contentColor = TextColor.fromRgb(contentRgb);
+	private static void themedLine(StyleSpriteSource iconFont, String icon,
+			StyleSpriteSource badgeFont, String badge,
+			String prefix, int prefixRgb, String body, int bodyRgb) {
+		TextColor prefixColor = TextColor.fromRgb(prefixRgb);
+		TextColor bodyColor = TextColor.fromRgb(bodyRgb);
 
 		// The root must stay unstyled: a style on the root is inherited by the
 		// appended siblings, which would draw the whole line in the badge font.
 		MutableText line = Text.empty();
-		line.append(Text.literal(shift).styled(style -> style.withFont(SHIFT_FONT)));
+		line.append(Text.literal(SHIFT).styled(style -> style.withFont(SHIFT_FONT)));
 		line.append(Text.literal(icon).styled(style -> style.withFont(iconFont)));
 		line.append(Text.literal(badge).styled(style -> style.withFont(badgeFont)));
-		line.append(Text.literal(" " + author + ": ")
-				.styled(style -> withChatFont(style.withColor(authorColor))));
-		line.append(Text.literal(content).styled(style -> withChatFont(style.withColor(contentColor))));
+		line.append(Text.literal(prefix).styled(style -> withChatFont(style.withColor(prefixColor))));
+		line.append(Text.literal(body).styled(style -> withChatFont(style.withColor(bodyColor))));
 		post(line);
 	}
 

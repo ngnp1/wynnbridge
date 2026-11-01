@@ -25,6 +25,12 @@ public final class BridgeSocket {
 	private static final Gson GSON = new Gson();
 	private static final long MAX_BACKOFF_MS = 30_000L;
 
+	/**
+	 * Pending mails arrive in a burst right after {@code auth_ok}, so the unread
+	 * notice waits for the burst to settle and then reports the final count.
+	 */
+	private static final long MAIL_NOTICE_DELAY_MS = 1_500L;
+
 	private final BridgeConfig config;
 	private final MailStore mailStore;
 	private final HttpClient http = HttpClient.newHttpClient();
@@ -38,6 +44,8 @@ public final class BridgeSocket {
 	private volatile String playerName;
 	private volatile long nextAttemptAt;
 	private volatile long backoffMs = 1_000L;
+	private volatile boolean mailNoticePending;
+	private volatile long mailNoticeDueAt;
 
 	public BridgeSocket(BridgeConfig config, MailStore mailStore) {
 		this.config = config;
@@ -140,12 +148,29 @@ public final class BridgeSocket {
 
 	/** Called every client tick so reconnects and retries happen on the main thread. */
 	public void tick() {
+		flushMailNotice();
+
 		if (playerName == null || webSocket != null || connecting) {
 			return;
 		}
 		if (System.currentTimeMillis() >= nextAttemptAt) {
 			open();
 		}
+	}
+
+	/** Shows one themed "you have x unread mails" line for the current inbox. */
+	private void flushMailNotice() {
+		if (!mailNoticePending || System.currentTimeMillis() < mailNoticeDueAt) {
+			return;
+		}
+		mailNoticePending = false;
+		int unread = mailStore.unreadCount();
+		ChatBridgeHooks.showMailNotice("you have " + unread + (unread == 1 ? " unread mail" : " unread mails"));
+	}
+
+	private void scheduleMailNotice() {
+		mailNoticeDueAt = System.currentTimeMillis() + MAIL_NOTICE_DELAY_MS;
+		mailNoticePending = true;
 	}
 
 	private void open() {
@@ -300,6 +325,8 @@ public final class BridgeSocket {
 				authenticated = true;
 				backoffMs = 1_000L;
 				WynnBridgeClient.LOGGER.info("Bridge authenticated as {}", text(payload, "player"));
+				// The server pushes anything unread right after authenticating.
+				scheduleMailNotice();
 			}
 			case "auth_error" -> {
 				WynnBridgeClient.LOGGER.warn("Bridge rejected credentials: {}", text(payload, "error"));
@@ -325,7 +352,8 @@ public final class BridgeSocket {
 				String sender = text(payload, "sender");
 				String content = text(payload, "content");
 				mailStore.add(id, sender, content, text(payload, "created_at"));
-				ChatBridgeHooks.showMail(sender, content);
+				// Mail bodies stay hidden until /mail read, so only report the count.
+				scheduleMailNotice();
 			}
 			case "mail_sent" -> ChatBridgeHooks.showSystem("mail sent to " + text(payload, "recipient"));
 			case "mail_error", "error" -> ChatBridgeHooks.showSystem("bridge error: " + text(payload, "error"));

@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.text.Text;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,17 +34,20 @@ public final class BridgeCommands {
 					.then(ClientCommandManager.literal("inbox")
 							.executes(context -> {
 								List<MailStore.Mail> mails = mailStore.all();
-								if (mails.isEmpty()) {
-									feedback(context.getSource(), "no mail");
+								List<MailStore.Mail> unread = new ArrayList<>();
+								for (MailStore.Mail mail : mails) {
+									if (!mail.read) {
+										unread.add(mail);
+									}
+								}
+								if (unread.isEmpty()) {
+									ChatBridgeHooks.showMailNotice("you have no unread mail");
 									return 0;
 								}
-								int from = Math.max(0, mails.size() - 10);
-								feedback(context.getSource(), (mails.size() - from) + " of " + mails.size() + " mail(s)");
-								for (int i = from; i < mails.size(); i++) {
-									MailStore.Mail mail = mails.get(i);
-									feedback(context.getSource(),
-											"#" + mail.id + (mail.read ? " [read] " : " [unread] ")
-													+ mail.sender + ": " + mail.content);
+								ChatBridgeHooks.showMailNotice("you have " + unread.size()
+										+ (unread.size() == 1 ? " unread mail" : " unread mails"));
+								for (MailStore.Mail mail : unread) {
+									ChatBridgeHooks.showMailNotice("#" + mail.id + " from " + mail.sender);
 								}
 								return 1;
 							}))
@@ -51,13 +55,15 @@ public final class BridgeCommands {
 							.then(ClientCommandManager.argument("id", IntegerArgumentType.integer(1))
 									.executes(context -> {
 										int id = IntegerArgumentType.getInteger(context, "id");
-										if (mailStore.markRead(id)) {
-											socket.mailRead(id);
-											feedback(context.getSource(), "marked mail #" + id + " as read");
-											return 1;
+										MailStore.Mail mail = mailStore.find(id);
+										if (mail == null) {
+											ChatBridgeHooks.showMailNotice("no mail with id " + id);
+											return 0;
 										}
-										feedback(context.getSource(), "no mail with id " + id);
-										return 0;
+										ChatBridgeHooks.showMail(mail.sender, mail.content);
+										mailStore.remove(id);
+										socket.mailRead(id);
+										return 1;
 									}))));
 
 			dispatcher.register(ClientCommandManager.literal("bridge")
