@@ -1,15 +1,15 @@
-"""Generate the BRIDGE badge and Discord icon glyphs shipped with the mod.
+"""Generate the BRIDGE badge and the cat-arrow icon shipped with the mod.
 
 Run from the repo root:  python3 tools/gen_badge.py
-Writes PNGs next to the mod resources and enlarges previews to /tmp.
 """
 
 from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-BG = (0xAC, 0xD8, 0xAA, 255)
-FG = (0x14, 0x26, 0x1A, 255)
+BG = (0xAC, 0xD8, 0xAA, 255)  # arrow and badge fill
+MID = (0x74, 0xA8, 0x80, 255)  # cat silhouette
+FG = (0x14, 0x26, 0x1A, 255)  # lettering, eyes, nose
 CLEAR = (0, 0, 0, 0)
 
 # 4x5 pixel letters, matching the proportions of Wynncraft's rank badges.
@@ -23,19 +23,24 @@ LETTERS = {
 }
 LABEL = "BRIDGE"
 
-# Discord mark: two horns and two eyes, with a point on the right so it reads
-# like the arrow Wynncraft puts in front of its rank badges.
-ICON = [
-    "...........",
-    ".##...##...",
-    "#########..",
-    "###########",
-    "##.###.####",
-    "###########",
-    "#########..",
-    ".##...##...",
-    "...........",
+# Arrow pointing right, like a house rotated on its side.
+ARROW = [
+    "..######....",
+    ".########...",
+    "##########..",
+    "###########.",
+    "############",
+    "###########.",
+    "##########..",
+    ".########...",
+    "..######....",
 ]
+
+# Cat face inside the arrow: ears, head, then eyes and nose punched in.
+CAT = ["#...#", "##.##", "#####", "#.#.#", ".###."]
+CAT_X, CAT_Y = 2, 2
+EYES = [(3, 5), (5, 5)]
+NOSE = [(4, 6)]
 
 ROOT = Path(__file__).resolve().parent.parent
 TEX = ROOT / "src/main/resources/assets/wynnbridge/textures/font"
@@ -59,13 +64,23 @@ def draw_badge() -> Image.Image:
 
 
 def draw_icon() -> Image.Image:
-    w = max(len(row) for row in ICON)
-    h = len(ICON)
+    w = max(len(row) for row in ARROW)
+    h = len(ARROW)
     img = Image.new("RGBA", (w, h), CLEAR)
-    for y, row in enumerate(ICON):
-        for x, bit in enumerate(row):
-            if bit != ".":
-                img.putpixel((x, y), BG if bit == "#" else CLEAR)
+
+    for y, row in enumerate(ARROW):
+        for x, ch in enumerate(row):
+            if ch == "#":
+                img.putpixel((x, y), BG)
+
+    for dy, row in enumerate(CAT):
+        for dx, ch in enumerate(row):
+            if ch == "#":
+                img.putpixel((CAT_X + dx, CAT_Y + dy), MID)
+
+    for x, y in EYES + NOSE:
+        img.putpixel((x, y), FG)
+
     return img
 
 
