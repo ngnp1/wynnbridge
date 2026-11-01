@@ -377,7 +377,7 @@ public final class BridgeSocket {
 					scheduleMailNotice();
 				}
 			}
-			case "mail_sent" -> ChatBridgeHooks.showSystem("mail sent to " + text(payload, "recipient"));
+			case "mail_sent" -> ChatBridgeHooks.showSystem("Mail sent to " + text(payload, "recipient") + ".");
 			case "mail_error", "error" -> ChatBridgeHooks.showSystem("bridge error: " + text(payload, "error"));
 			default -> {
 			}
