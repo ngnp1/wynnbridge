@@ -1,6 +1,7 @@
 package com.wynnbridge;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.net.URI;
@@ -9,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -298,6 +300,21 @@ public final class BridgeSocket {
 		JsonObject payload = new JsonObject();
 		payload.addProperty("op", "mail_read");
 		payload.addProperty("id", id);
+		send(payload);
+	}
+
+	/** Asks the server to drop these mails so they are not handed out again. */
+	public void mailDelete(List<Integer> ids) {
+		if (!authenticated || ids.isEmpty()) {
+			return;
+		}
+		JsonObject payload = new JsonObject();
+		payload.addProperty("op", "mail_delete");
+		JsonArray array = new JsonArray();
+		for (int id : ids) {
+			array.add(id);
+		}
+		payload.add("ids", array);
 		send(payload);
 	}
 

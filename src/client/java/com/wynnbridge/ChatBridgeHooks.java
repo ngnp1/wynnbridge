@@ -300,16 +300,19 @@ public final class ChatBridgeHooks {
 	/**
 	 * A continuation line under a mail notice: no badge, indented to line up with
 	 * the text of the badge line above it, with the inbox position and the word
-	 * "from" in the brighter colour. Positions count the unread mail only, so they
-	 * start at 1 again once the earlier ones are read.
+	 * "from" in the brighter colour. {@code <unr>}/{@code <r>} mark whether the
+	 * mail has been opened. Positions count the stored mail only, so they start at
+	 * 1 again once the earlier ones are cleared.
 	 */
-	public static void showMailEntry(int number, String title, String sender) {
+	public static void showMailEntry(int number, boolean read, String title, String sender) {
 		TextColor amber = TextColor.fromRgb(MAIL_COLOR);
 		TextColor bright = TextColor.fromRgb(MAIL_BRIGHT_COLOR);
 		String trimmed = title == null ? "" : title.trim();
 
 		MutableText line = Text.empty();
-		line.append(Text.literal("    #" + number).styled(style -> withChatFont(style.withColor(bright))));
+		line.append(Text.literal("    " + (read ? "<r>" : "<unr>"))
+				.styled(style -> withChatFont(style.withColor(read ? amber : bright))));
+		line.append(Text.literal(" #" + number).styled(style -> withChatFont(style.withColor(bright))));
 		line.append(Text.literal(trimmed.isEmpty() ? " " : " " + trimmed + " ")
 				.styled(style -> withChatFont(style.withColor(amber))));
 		line.append(Text.literal("from").styled(style -> withChatFont(style.withColor(bright))));
