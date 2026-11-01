@@ -1,0 +1,121 @@
+# Wynn Bridge (Fabric 1.21.11)
+
+Client-side mod that connects Minecraft to the bot's chat bridge:
+
+- **Game -> Discord:** guild chat lines are read client-side and forwarded to the bridge channel.
+- **Discord -> game:** messages from the bridge channel are injected into your chat HUD only —
+  nothing is sent to Wynncraft.
+- **Mail:** `/mail send <player> <text>` stores a message server-side; the recipient sees it in chat
+  when they are online (immediately) or the next time they log in.
+
+The backend (Discord bot + WebSocket server) lives in the companion bot repository, in
+`cogs/chat_bridge.py`.
+
+## Requirements
+
+- JDK 21
+- The bot running with the bridge server reachable from every player's machine
+  (`BRIDGE_CHANNEL_ID`, `BRIDGE_HOST`, `BRIDGE_PORT`)
+- Fabric API installed alongside this mod
+
+Versions in `gradle.properties` are pinned to what Fabric publishes for 1.21.11:
+
+```
+minecraft_version=1.21.11
+yarn_mappings=1.21.11+build.6
+loader_version=0.20.1
+fabric_api_version=0.141.6+1.21.11
+loom_version=1.19-SNAPSHOT
+```
+
+## Build
+
+The Gradle wrapper JAR is not checked in. Bootstrap it once:
+
+```bash
+cd minecraft-mod
+
+# either, if you have Gradle installed:
+gradle wrapper --gradle-version 9.8.2
+
+# or copy the wrapper from Fabric's example mod (branch 1.21.11):
+#   gradlew, gradlew.bat, gradle/
+```
+
+Then:
+
+```bash
+./gradlew build
+```
+
+The jar lands in `build/libs/wynnbridge-1.0.0.jar`. Drop it and
+[Fabric API](https://modrinth.com/mod/fabric-api) for 1.21.11 into `.minecraft/mods`.
+
+## Configure
+
+1. In Discord run `/bridge_link` and copy the token.
+2. Start the game once so the mod writes `.minecraft/config/wynnbridge.json`, then edit it:
+
+```json
+{
+  "url": "wss://your-host/ws",
+  "token": "paste-the-token-here",
+  "forwardGuildChat": true,
+  "debugChat": false,
+  "guildPattern": "(?i)\\bguild\\b"
+}
+```
+
+3. Reconnect to the server (or `/bridge reconnect`). `/bridge status` should report `connected: yes`.
+
+If the bot runs on the same machine, `ws://127.0.0.1:8765/ws` works. Over the internet use
+`wss://` behind a reverse proxy (Caddy/nginx) or a private tunnel (Tailscale, playit.gg).
+
+## Finding the guild chat format
+
+Wynncraft changes chat formatting between updates, so the regex is a config value rather than
+something hard-coded. To figure it out:
+
+1. Set `"debugChat": true`.
+2. Talk in guild chat and check `.minecraft/logs/latest.log` for lines starting with `chat: `.
+3. Copy the exact prefix into `guildPattern` (Java regex), e.g.
+   `"^\\[Guild\\]"`, `"^Guild >"`, or `"^§?\\[?Guild"`.
+
+The default `(?i)\bguild\b` matches any line containing the word "guild", which is a decent
+starting point but may also catch other messages.
+
+## Commands
+
+| Command | Effect |
+| --- | --- |
+| `/mail send <player> <text>` | Send mail through the bridge |
+| `/mail inbox` | Show the last 10 mails (unread first are marked) |
+| `/mail read <id>` | Mark a mail read locally and server-side |
+| `/bridge status` | Server URL, connection state, unread count |
+| `/bridge reconnect` | Force a reconnect |
+
+Client commands are handled locally and never sent to Wynncraft. If `/mail` collides with a
+Wynncraft command, rename the literal in `BridgeCommands.java`.
+
+## Notes and limits
+
+- **Never auto-sends to Wynncraft.** Discord messages go straight to the chat HUD
+  (`ChatHud.addMessage`), not through the server connection.
+- The server dedupes guild chat for 5 seconds, because every connected client sees the same
+  line and would otherwise post duplicates to Discord.
+- Tokens are bearer credentials: anyone with one can claim a Minecraft name. Keep the bridge
+  port private (VPN/tunnel) or put it behind TLS with auth.
+- Chat is truncated to 240 characters by the server, mail to 900.
+- Mail is stored in SQLite on the bot (`data/bridge.sqlite3`) plus a local copy in
+  `config/wynnbridge-mail.json`.
+
+## If compilation fails
+
+The code targets the Yarn mapping names for 1.21.11. If a Fabric API class moved in your exact
+version, the error will name it — the likely spots are:
+
+- `ClientReceiveMessageEvents.GAME` (`net.fabricmc.fabric.api.client.message.v1`)
+- `ClientCommandManager` (`net.fabricmc.fabric.api.client.command.v2`)
+- `ChatHud#addMessage` (Yarn: `inGameHud.getChatHud().addMessage(Text)`)
+
+Check https://fabricmc.net/develop for the versions and the Fabric API javadocs for signatures.

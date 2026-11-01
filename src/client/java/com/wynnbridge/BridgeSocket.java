@@ -1,0 +1,301 @@
+package com.wynnbridge;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
+import java.time.Duration;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * WebSocket client for the bot's bridge server.
+ *
+ * Sending happens on a dedicated thread because {@link WebSocket#sendText}
+ * rejects overlapping sends, and receiving is dispatched on to the client
+ * thread by {@link ChatBridgeHooks}.
+ */
+public final class BridgeSocket {
+	private static final Gson GSON = new Gson();
+	private static final long MAX_BACKOFF_MS = 30_000L;
+
+	private final BridgeConfig config;
+	private final MailStore mailStore;
+	private final HttpClient http = HttpClient.newHttpClient();
+	private final BlockingQueue<String> outbox = new LinkedBlockingQueue<>();
+	private final StringBuilder inbound = new StringBuilder();
+
+	private volatile WebSocket webSocket;
+	private volatile boolean authenticated;
+	private volatile boolean connecting;
+	private volatile boolean warnedMissingToken;
+	private volatile String playerName;
+	private volatile long nextAttemptAt;
+	private volatile long backoffMs = 1_000L;
+
+	public BridgeSocket(BridgeConfig config, MailStore mailStore) {
+		this.config = config;
+		this.mailStore = mailStore;
+	}
+
+	public boolean isAuthenticated() {
+		return authenticated;
+	}
+
+	public String url() {
+		return config.url;
+	}
+
+	public void connect(String player) {
+		this.playerName = player;
+		this.backoffMs = 1_000L;
+		this.nextAttemptAt = 0L;
+		open();
+	}
+
+	public void disconnect() {
+		this.playerName = null;
+		this.authenticated = false;
+		WebSocket ws = this.webSocket;
+		this.webSocket = null;
+		if (ws != null) {
+			ws.sendClose(WebSocket.NORMAL_CLOSURE, "client disconnect");
+		}
+	}
+
+	public void reconnect() {
+		this.authenticated = false;
+		WebSocket ws = this.webSocket;
+		this.webSocket = null;
+		if (ws != null) {
+			ws.sendClose(WebSocket.NORMAL_CLOSURE, "reconnect");
+		}
+		this.backoffMs = 1_000L;
+		this.nextAttemptAt = 0L;
+		if (this.playerName != null) {
+			open();
+		}
+	}
+
+	/** Called every client tick so reconnects and retries happen on the main thread. */
+	public void tick() {
+		if (playerName == null || webSocket != null || connecting) {
+			return;
+		}
+		if (System.currentTimeMillis() >= nextAttemptAt) {
+			open();
+		}
+	}
+
+	private void open() {
+		if (!config.isConfigured()) {
+			if (!warnedMissingToken) {
+				WynnBridgeClient.LOGGER.warn("No bridge token configured - run /bridge_link in Discord first.");
+				warnedMissingToken = true;
+			}
+			return;
+		}
+
+		URI uri;
+		try {
+			uri = URI.create(config.url);
+		} catch (IllegalArgumentException e) {
+			WynnBridgeClient.LOGGER.warn("Invalid bridge url '{}'", config.url);
+			scheduleRetry();
+			return;
+		}
+
+		connecting = true;
+		http.newWebSocketBuilder()
+				.connectTimeout(Duration.ofSeconds(10))
+				.buildAsync(uri, new Listener())
+				.whenComplete((ws, error) -> {
+					connecting = false;
+					if (error != null) {
+						WynnBridgeClient.LOGGER.warn("Bridge connection to {} failed: {}", config.url, error.toString());
+						scheduleRetry();
+						return;
+					}
+					webSocket = ws;
+					inbound.setLength(0);
+					startSender();
+					sendAuth();
+				});
+	}
+
+	private void sendAuth() {
+		JsonObject payload = new JsonObject();
+		payload.addProperty("op", "auth");
+		payload.addProperty("token", config.token);
+		payload.addProperty("player", playerName == null ? "" : playerName);
+		send(payload);
+	}
+
+	private void startSender() {
+		Thread sender = new Thread(() -> {
+			try {
+				while (true) {
+					String message = outbox.poll(1, TimeUnit.SECONDS);
+					WebSocket ws = webSocket;
+					if (ws == null) {
+						return;
+					}
+					if (message != null) {
+						ws.sendText(message, true).join();
+					}
+				}
+			} catch (InterruptedException ignored) {
+				Thread.currentThread().interrupt();
+			} catch (Exception e) {
+				WynnBridgeClient.LOGGER.warn("Bridge send failed", e);
+			}
+		}, "wynnbridge-sender");
+		sender.setDaemon(true);
+		sender.start();
+	}
+
+	public void send(JsonObject payload) {
+		outbox.offer(GSON.toJson(payload));
+	}
+
+	public void sendChat(String content) {
+		if (!authenticated) {
+			return;
+		}
+		JsonObject payload = new JsonObject();
+		payload.addProperty("op", "chat");
+		payload.addProperty("content", content);
+		send(payload);
+	}
+
+	public void sendMail(String recipient, String content) {
+		if (!authenticated) {
+			ChatBridgeHooks.showSystem("not connected to the bridge");
+			return;
+		}
+		JsonObject payload = new JsonObject();
+		payload.addProperty("op", "mail_send");
+		payload.addProperty("recipient", recipient);
+		payload.addProperty("content", content);
+		send(payload);
+	}
+
+	public void mailRead(int id) {
+		if (!authenticated) {
+			return;
+		}
+		JsonObject payload = new JsonObject();
+		payload.addProperty("op", "mail_read");
+		payload.addProperty("id", id);
+		send(payload);
+	}
+
+	public void mailFetch() {
+		if (!authenticated) {
+			return;
+		}
+		JsonObject payload = new JsonObject();
+		payload.addProperty("op", "mail_fetch");
+		send(payload);
+	}
+
+	private void scheduleRetry() {
+		long wait = backoffMs;
+		nextAttemptAt = System.currentTimeMillis() + wait;
+		backoffMs = Math.min(backoffMs * 2, MAX_BACKOFF_MS);
+	}
+
+	private void handleClosed() {
+		webSocket = null;
+		authenticated = false;
+		scheduleRetry();
+	}
+
+	private void handleFrame(String raw) {
+		JsonObject payload;
+		try {
+			payload = GSON.fromJson(raw, JsonObject.class);
+		} catch (RuntimeException e) {
+			return;
+		}
+		if (payload == null || !payload.has("op")) {
+			return;
+		}
+
+		String op = payload.get("op").getAsString();
+		switch (op) {
+			case "auth_ok" -> {
+				authenticated = true;
+				backoffMs = 1_000L;
+				WynnBridgeClient.LOGGER.info("Bridge authenticated as {}", text(payload, "player"));
+			}
+			case "auth_error" -> {
+				WynnBridgeClient.LOGGER.warn("Bridge rejected credentials: {}", text(payload, "error"));
+				backoffMs = MAX_BACKOFF_MS;
+				WebSocket ws = webSocket;
+				webSocket = null;
+				authenticated = false;
+				if (ws != null) {
+					ws.sendClose(WebSocket.NORMAL_CLOSURE, "auth failed");
+				}
+				scheduleRetry();
+			}
+			case "chat" -> ChatBridgeHooks.showDiscordChat(text(payload, "author"), text(payload, "content"));
+			case "mail" -> {
+				int id = payload.has("id") ? payload.get("id").getAsInt() : 0;
+				String sender = text(payload, "sender");
+				String content = text(payload, "content");
+				mailStore.add(id, sender, content, text(payload, "created_at"));
+				ChatBridgeHooks.showMail(sender, content);
+			}
+			case "mail_sent" -> ChatBridgeHooks.showSystem("mail sent to " + text(payload, "recipient"));
+			case "mail_error", "error" -> ChatBridgeHooks.showSystem("bridge error: " + text(payload, "error"));
+			default -> {
+			}
+		}
+	}
+
+	private static String text(JsonObject payload, String key) {
+		if (!payload.has(key) || payload.get(key).isJsonNull()) {
+			return "";
+		}
+		return payload.get(key).getAsString();
+	}
+
+	private final class Listener implements WebSocket.Listener {
+		@Override
+		public void onOpen(WebSocket ws) {
+			ws.request(1);
+		}
+
+		@Override
+		public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
+			synchronized (inbound) {
+				inbound.append(data);
+				if (last) {
+					String raw = inbound.toString();
+					inbound.setLength(0);
+					handleFrame(raw);
+				}
+			}
+			ws.request(1);
+			return null;
+		}
+
+		@Override
+		public CompletionStage<?> onClose(WebSocket ws, int statusCode, String reason) {
+			handleClosed();
+			return null;
+		}
+
+		@Override
+		public void onError(WebSocket ws, Throwable error) {
+			WynnBridgeClient.LOGGER.warn("Bridge socket error: {}", error.toString());
+			handleClosed();
+		}
+	}
+}

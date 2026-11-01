@@ -1,0 +1,23 @@
+{
+	"schemaVersion": 1,
+	"id": "wynnbridge",
+	"version": "${version}",
+	"name": "Wynn Bridge",
+	"description": "Bridges Wynncraft guild chat with a Discord channel and adds in-game mail.",
+	"authors": [
+		"you"
+	],
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.wynnbridge.WynnBridgeClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"fabric-api": "*",
+		"minecraft": "~1.21.11",
+		"java": ">=21"
+	}
+}
