@@ -179,7 +179,7 @@ public final class BridgeSocket {
 					}
 					webSocket = ws;
 					inbound.setLength(0);
-					startSender();
+					startSender(ws);
 					sendAuth();
 				});
 	}
@@ -192,18 +192,22 @@ public final class BridgeSocket {
 		send(payload);
 	}
 
-	private void startSender() {
+	private void startSender(WebSocket ws) {
 		Thread sender = new Thread(() -> {
 			try {
 				while (true) {
-					String message = outbox.poll(1, TimeUnit.SECONDS);
-					WebSocket ws = webSocket;
-					if (ws == null) {
+					if (webSocket != ws) {
 						return;
 					}
-					if (message != null) {
-						ws.sendText(message, true).join();
+					String message = outbox.poll(1, TimeUnit.SECONDS);
+					if (message == null) {
+						continue;
 					}
+					if (webSocket != ws) {
+						outbox.offer(message);
+						return;
+					}
+					ws.sendText(message, true).join();
 				}
 			} catch (InterruptedException ignored) {
 				Thread.currentThread().interrupt();
@@ -266,7 +270,14 @@ public final class BridgeSocket {
 		backoffMs = Math.min(backoffMs * 2, MAX_BACKOFF_MS);
 	}
 
-	private void handleClosed() {
+	/**
+	 * Only the socket we currently consider active may change connection state;
+	 * a socket replaced by reconnecting must not clear the new one.
+	 */
+	private void handleClosed(WebSocket ws) {
+		if (ws != webSocket) {
+			return;
+		}
 		webSocket = null;
 		authenticated = false;
 		scheduleRetry();
@@ -301,7 +312,14 @@ public final class BridgeSocket {
 				}
 				scheduleRetry();
 			}
-			case "chat" -> ChatBridgeHooks.showDiscordChat(text(payload, "author"), text(payload, "content"));
+			case "chat" -> {
+				String author = text(payload, "author");
+				String content = text(payload, "content");
+				if (config.debugChat) {
+					WynnBridgeClient.LOGGER.info("discord -> game: {}: {}", author, content);
+				}
+				ChatBridgeHooks.showDiscordChat(author, content);
+			}
 			case "mail" -> {
 				int id = payload.has("id") ? payload.get("id").getAsInt() : 0;
 				String sender = text(payload, "sender");
@@ -336,7 +354,9 @@ public final class BridgeSocket {
 				if (last) {
 					String raw = inbound.toString();
 					inbound.setLength(0);
-					handleFrame(raw);
+					if (ws == webSocket) {
+						handleFrame(raw);
+					}
 				}
 			}
 			ws.request(1);
@@ -345,14 +365,14 @@ public final class BridgeSocket {
 
 		@Override
 		public CompletionStage<?> onClose(WebSocket ws, int statusCode, String reason) {
-			handleClosed();
+			handleClosed(ws);
 			return null;
 		}
 
 		@Override
 		public void onError(WebSocket ws, Throwable error) {
 			WynnBridgeClient.LOGGER.warn("Bridge socket error: {}", error.toString());
-			handleClosed();
+			handleClosed(ws);
 		}
 	}
 }

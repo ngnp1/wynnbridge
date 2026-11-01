@@ -77,11 +77,57 @@ public final class BridgeCommands {
 					.then(ClientCommandManager.literal("status")
 							.executes(context -> {
 								FabricClientCommandSource source = context.getSource();
+								BridgeConfig config = WynnBridgeClient.config();
 								feedback(source, "server: " + socket.url());
 								feedback(source, "connected: " + (socket.isAuthenticated() ? "yes" : "no"));
 								feedback(source, "unread mail: " + mailStore.unreadCount());
+								feedback(source, "forwarding: " + (config.forwardGuildChat ? "on" : "off")
+										+ ", debug: " + (config.debugChat ? "on" : "off"));
+								feedback(source, "pattern: " + config.guildPattern);
 								return 1;
 							}))
+					.then(ClientCommandManager.literal("reload")
+							.executes(context -> {
+								FabricClientCommandSource source = context.getSource();
+								BridgeConfig config = WynnBridgeClient.config();
+								config.reload();
+								feedback(source, "reloaded config/wynnbridge.json");
+								feedback(source, "server: " + config.url);
+								feedback(source, "forwarding: " + (config.forwardGuildChat ? "on" : "off")
+										+ ", debug: " + (config.debugChat ? "on" : "off"));
+								feedback(source, "pattern: " + config.guildPattern);
+								feedback(source, "run /bridge reconnect if the server changed");
+								return 1;
+							}))
+					.then(ClientCommandManager.literal("debug")
+							.then(ClientCommandManager.literal("on")
+									.executes(context -> {
+										BridgeConfig config = WynnBridgeClient.config();
+										config.debugChat = true;
+										config.save();
+										feedback(context.getSource(), "chat logging on - incoming lines appear as 'chat: <line>'");
+										return 1;
+									}))
+							.then(ClientCommandManager.literal("off")
+									.executes(context -> {
+										BridgeConfig config = WynnBridgeClient.config();
+										config.debugChat = false;
+										config.save();
+										feedback(context.getSource(), "chat logging off");
+										return 1;
+									})))
+					.then(ClientCommandManager.literal("pattern")
+							.then(ClientCommandManager.argument("regex", StringArgumentType.greedyString())
+									.executes(context -> {
+										BridgeConfig config = WynnBridgeClient.config();
+										String error = config.setPattern(StringArgumentType.getString(context, "regex"));
+										if (error != null) {
+											feedback(context.getSource(), "invalid regex: " + error);
+											return 0;
+										}
+										feedback(context.getSource(), "pattern set: " + config.guildPattern);
+										return 1;
+									})))
 					.then(ClientCommandManager.literal("reconnect")
 							.executes(context -> {
 								socket.reconnect();

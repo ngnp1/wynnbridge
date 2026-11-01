@@ -14,7 +14,7 @@ import java.util.regex.PatternSyntaxException;
 
 /**
  * Settings stored in {@code config/wynnbridge.json}. The file is created with
- * defaults on first launch.
+ * defaults on first launch and can be re-read with {@code /bridge reload}.
  */
 public final class BridgeConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -31,8 +31,12 @@ public final class BridgeConfig {
 	/** Log every incoming chat line so the guild pattern can be tuned. */
 	public boolean debugChat = false;
 
-	/** Lines matching this regex are treated as guild chat. */
-	public String guildPattern = "(?i)\\bguild\\b";
+	/**
+	 * Lines matching this regex are treated as guild chat. It is matched against
+	 * the readable text (icon glyphs and colour codes stripped), because
+	 * Wynncraft changes the icon glyphs it uses from message to message.
+	 */
+	public String guildPattern = "^[^:]{1,48}: \\S";
 
 	private transient Pattern compiledPattern;
 
@@ -57,6 +61,59 @@ public final class BridgeConfig {
 
 		loaded.save();
 		return loaded;
+	}
+
+	/**
+	 * Re-reads the file into this instance so edits apply without restarting
+	 * the game. Missing keys keep their defaults.
+	 */
+	public void reload() {
+		Path file = path();
+		if (!Files.exists(file)) {
+			WynnBridgeClient.LOGGER.warn("No config at {}, keeping current settings", file);
+			return;
+		}
+
+		BridgeConfig parsed;
+		try (Reader reader = Files.newBufferedReader(file)) {
+			parsed = GSON.fromJson(reader, BridgeConfig.class);
+		} catch (IOException | RuntimeException e) {
+			WynnBridgeClient.LOGGER.warn("Could not read {}, keeping current settings", file, e);
+			return;
+		}
+		if (parsed == null) {
+			WynnBridgeClient.LOGGER.warn("{} is empty, keeping current settings", file);
+			return;
+		}
+
+		if (parsed.url != null) {
+			url = parsed.url;
+		}
+		if (parsed.token != null) {
+			token = parsed.token;
+		}
+		if (parsed.guildPattern != null) {
+			guildPattern = parsed.guildPattern;
+		}
+		forwardGuildChat = parsed.forwardGuildChat;
+		debugChat = parsed.debugChat;
+		compiledPattern = null;
+	}
+
+	/**
+	 * Validates, applies and persists a new guild pattern.
+	 *
+	 * @return {@code null} on success, otherwise the pattern error
+	 */
+	public String setPattern(String regex) {
+		try {
+			compiledPattern = Pattern.compile(regex);
+		} catch (PatternSyntaxException e) {
+			return e.getDescription();
+		}
+		guildPattern = regex;
+		save();
+		return null;
 	}
 
 	public void save() {
