@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
 
 import java.util.Locale;
@@ -156,10 +157,14 @@ public final class ChatBridgeHooks {
 		return out.toString().replaceAll("\\s+", " ").trim();
 	}
 
+	/** Colour used for messages mirrored in from Discord. */
+	private static final int BRIDGE_COLOR = 0xACD8AA;
+
 	public static void showDiscordChat(String author, String content) {
-		post(Text.literal("[Discord] ").formatted(Formatting.AQUA)
-				.append(Text.literal(author).formatted(Formatting.WHITE))
-				.append(Text.literal(": " + content).formatted(Formatting.GRAY)));
+		TextColor color = TextColor.fromRgb(BRIDGE_COLOR);
+		post(Text.literal("BRIDGE ").styled(style -> style.withColor(color).withBold(true))
+				.append(Text.literal(author + ": ").styled(style -> style.withColor(color)))
+				.append(Text.literal(content).styled(style -> style.withColor(color))));
 	}
 
 	public static void showMail(String sender, String content) {
