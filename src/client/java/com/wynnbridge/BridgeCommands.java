@@ -61,6 +61,19 @@ public final class BridgeCommands {
 									}))));
 
 			dispatcher.register(ClientCommandManager.literal("bridge")
+					.then(ClientCommandManager.literal("join")
+							.then(ClientCommandManager.argument("link", StringArgumentType.greedyString())
+									.executes(context -> {
+										String link = StringArgumentType.getString(context, "link");
+										FabricClientCommandSource source = context.getSource();
+										if (socket.applyLink(link)) {
+											feedback(source, "bridge server set to " + socket.url());
+											feedback(source, "connecting - check /bridge status");
+											return 1;
+										}
+										feedback(source, "invalid link, expected wss://host/ws#token");
+										return 0;
+									}))))
 					.then(ClientCommandManager.literal("status")
 							.executes(context -> {
 								FabricClientCommandSource source = context.getSource();

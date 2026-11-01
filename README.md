@@ -53,12 +53,21 @@ The jar lands in `build/libs/wynnbridge-1.0.0.jar`. Drop it and
 
 ## Configure
 
-1. In Discord run `/bridge_link` and copy the token.
-2. Start the game once so the mod writes `.minecraft/config/wynnbridge.json`, then edit it:
+The quickest path needs no file editing. In Discord run `/bridge_link`; the bot replies with a
+token and a ready-to-paste command such as:
+
+```
+/bridge join wss://bridge.example.com/ws#TOKEN
+```
+
+Type that in Minecraft (it is a client command, so nothing is sent to Wynncraft). The mod saves
+the URL and token, then reconnects. Check `/bridge status` - it should report `connected: yes`.
+
+You can also edit `.minecraft/config/wynnbridge.json` by hand:
 
 ```json
 {
-  "url": "wss://your-host/ws",
+  "url": "wss://bridge.example.com/ws",
   "token": "paste-the-token-here",
   "forwardGuildChat": true,
   "debugChat": false,
@@ -66,10 +75,9 @@ The jar lands in `build/libs/wynnbridge-1.0.0.jar`. Drop it and
 }
 ```
 
-3. Reconnect to the server (or `/bridge reconnect`). `/bridge status` should report `connected: yes`.
-
-If the bot runs on the same machine, `ws://127.0.0.1:8765/ws` works. Over the internet use
-`wss://` behind a reverse proxy (Caddy/nginx) or a private tunnel (Tailscale, playit.gg).
+The URL has to be reachable by every player. Tailscale works, but a TLS tunnel means players
+install nothing extra: Cloudflare Tunnel (`wss://bridge.example.com/ws`) or
+`tailscale funnel 8765` on the server (`wss://<machine>.<tailnet>.ts.net/ws`).
 
 ## Finding the guild chat format
 
@@ -91,6 +99,7 @@ starting point but may also catch other messages.
 | `/mail send <player> <text>` | Send mail through the bridge |
 | `/mail inbox` | Show the last 10 mails (unread first are marked) |
 | `/mail read <id>` | Mark a mail read locally and server-side |
+| `/bridge join <link>` | Save a `wss://host/ws#token` link and reconnect |
 | `/bridge status` | Server URL, connection state, unread count |
 | `/bridge reconnect` | Force a reconnect |
 

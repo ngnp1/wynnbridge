@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.time.Duration;
@@ -78,6 +80,61 @@ public final class BridgeSocket {
 		this.nextAttemptAt = 0L;
 		if (this.playerName != null) {
 			open();
+		}
+	}
+
+	/**
+	 * Applies a shared link such as {@code wss://relay.example.com/ws#TOKEN},
+	 * saves it to the config and reconnects.
+	 */
+	public boolean applyLink(String link) {
+		URI uri;
+		try {
+			uri = URI.create(link.trim());
+		} catch (IllegalArgumentException e) {
+			return false;
+		}
+
+		String scheme = uri.getScheme();
+		if (scheme == null || !(scheme.equals("ws") || scheme.equals("wss")) || uri.getRawAuthority() == null) {
+			return false;
+		}
+
+		String token = null;
+		String fragment = uri.getRawFragment();
+		if (fragment != null && !fragment.isBlank()) {
+			token = decode(fragment);
+		}
+		String query = uri.getRawQuery();
+		if (token == null && query != null) {
+			for (String part : query.split("&")) {
+				if (part.startsWith("token=")) {
+					token = decode(part.substring("token=".length()));
+					break;
+				}
+			}
+		}
+		if (token != null && token.startsWith("token=")) {
+			token = token.substring("token=".length());
+		}
+
+		String path = uri.getRawPath();
+		config.url = scheme + "://" + uri.getRawAuthority()
+				+ (path == null || path.isEmpty() ? "/ws" : path);
+		if (token != null && !token.isBlank()) {
+			config.token = token;
+		}
+		config.save();
+		warnedMissingToken = false;
+		reconnect();
+		return true;
+	}
+
+	private static String decode(String value) {
+		try {
+			return URLDecoder.decode(value, StandardCharsets.UTF_8);
+		} catch (IllegalArgumentException e) {
+			return value;
 		}
 	}
 
