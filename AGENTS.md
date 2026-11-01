@@ -31,5 +31,6 @@ Say what was released, with the release URL, at the end of the turn.
   each client forward different text for the same message (e.g. Wynntils'
   `RevealNicknamesFeature` turns `nick` into `RealName/nick`), which defeats the bot's
   content dedupe and produces duplicate Discord posts.
-- The bridge server (bot repo, `cogs/chat_bridge.py`) dedupes guild chat by content for
-  5 seconds, so forwarded text must be identical on every client.
+- The bridge server (bot repo, `cogs/chat_bridge.py`) dedupes guild chat for 5 seconds on
+  the message body plus the names in the sender (`a/b` matches both `a` and `b`), so
+  differently rendered nicknames still collapse into one Discord post.
