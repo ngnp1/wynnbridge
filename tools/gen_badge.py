@@ -49,15 +49,22 @@ NOSE = [(3, 4)]
 # A channel is a badge label plus the three colours its glyphs are drawn in:
 # badge/arrow fill, cat silhouette, and lettering/eyes/nose.
 CHANNELS = {
-    # Discord -> game, #ff3b80 glyphs, white lettering, sender name #cf0042
+    # Discord -> game, #fd4988 glyphs, white lettering, sender name #cf0042
     "bridge": {
         "label": "BRIDGE",
-        "bg": (0xFF, 0x3B, 0x80, 255),
-        "mid": (0xB3, 0x25, 0x58, 255),
+        "bg": (0xFD, 0x49, 0x88, 255),
+        "mid": (0xB1, 0x33, 0x5F, 255),
         "fg": (0xFF, 0xFF, 0xFF, 255),
     },
-    # Mail, #ffe3c5 glyphs with dark lettering
+    # Mail, amber glyphs
     "mail": {
+        "label": "MAIL",
+        "bg": (0xFF, 0xB8, 0x6C, 255),
+        "mid": (0xC8, 0x85, 0x43, 255),
+        "fg": (0x35, 0x22, 0x0D, 255),
+    },
+    # Mail opened with /mail read, paler glyphs
+    "mail_read": {
         "label": "MAIL",
         "bg": (0xFF, 0xE3, 0xC5, 255),
         "mid": (0xD9, 0xA9, 0x7C, 255),

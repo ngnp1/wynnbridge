@@ -22,6 +22,9 @@ public final class MailStore {
 	private static final Type LIST_TYPE = new TypeToken<List<Mail>>() {
 	}.getType();
 
+	/** How many read tombstones to keep so re-pushed mail is recognised. */
+	private static final int MAX_READ_HISTORY = 200;
+
 	public static final class Mail {
 		public int id;
 		public String sender = "";
@@ -86,12 +89,18 @@ public final class MailStore {
 		return null;
 	}
 
-	/** Drops a mail from the local inbox once it has been read. */
-	public synchronized boolean remove(int id) {
-		for (int i = 0; i < mails.size(); i++) {
-			if (mails.get(i).id == id) {
-				mails.remove(i);
-				save();
+	/**
+	 * Marks a mail read. The entry stays behind as a tombstone: the fields still
+	 * hold the id, so a re-push of the same mail is ignored by {@link #add} instead
+	 * of climbing back into the inbox and raising the count again.
+	 */
+	public synchronized boolean markRead(int id) {
+		for (Mail mail : mails) {
+			if (mail.id == id) {
+				if (!mail.read) {
+					mail.read = true;
+					save();
+				}
 				return true;
 			}
 		}
@@ -114,6 +123,7 @@ public final class MailStore {
 	}
 
 	private void save() {
+		pruneReadHistory();
 		try {
 			Files.createDirectories(path().getParent());
 			try (Writer writer = Files.newBufferedWriter(path())) {
@@ -121,6 +131,24 @@ public final class MailStore {
 			}
 		} catch (Exception e) {
 			WynnBridgeClient.LOGGER.warn("Could not write {}", path(), e);
+		}
+	}
+
+	/** Keeps the read tombstones from growing without bound. */
+	private void pruneReadHistory() {
+		int read = 0;
+		for (Mail mail : mails) {
+			if (mail.read) {
+				read++;
+			}
+		}
+		for (int i = 0; i < mails.size() && read > MAX_READ_HISTORY; ) {
+			if (mails.get(i).read) {
+				mails.remove(i);
+				read--;
+			} else {
+				i++;
+			}
 		}
 	}
 }

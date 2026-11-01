@@ -62,7 +62,7 @@ public final class BridgeCommands {
 											return 0;
 										}
 										ChatBridgeHooks.showMail(mail.sender, mail.content);
-										mailStore.remove(id);
+										mailStore.markRead(id);
 										socket.mailRead(id);
 										return 1;
 									}))));

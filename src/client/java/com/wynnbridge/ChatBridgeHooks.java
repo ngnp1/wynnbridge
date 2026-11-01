@@ -179,13 +179,13 @@ public final class ChatBridgeHooks {
 	private static final int BRIDGE_COLOR = 0xCF0042;
 
 	/** Colour of the message itself, after the colon, and of the bridge glyph fill. */
-	private static final int BRIDGE_MESSAGE_COLOR = 0xFF3B80;
+	private static final int BRIDGE_MESSAGE_COLOR = 0xFD4988;
 
 	/** Colour of the sender name on a mail line. */
 	private static final int MAIL_COLOR = 0xFFB86C;
 
-	/** Colour of the mail glyph fill and of every mail line without a sender name. */
-	private static final int MAIL_TEXT_COLOR = 0xFFE3C5;
+	/** Colour of the body of a mail opened with {@code /mail read}. */
+	private static final int MAIL_READ_COLOR = 0xFFE3C5;
 
 	/** Bitmap fonts shipped in resources: the Discord icon and the BRIDGE badge. */
 	private static final StyleSpriteSource ICON_FONT =
@@ -201,10 +201,19 @@ public final class ChatBridgeHooks {
 	private static final StyleSpriteSource MAIL_BADGE_FONT =
 			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "mail_badge"));
 
+	/** The mail glyphs again, paler, for a mail that has just been read. */
+	private static final StyleSpriteSource MAIL_READ_ICON_FONT =
+			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "mail_read_icon"));
+
+	private static final StyleSpriteSource MAIL_READ_BADGE_FONT =
+			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "mail_read_badge"));
+
 	private static final String ICON = "\uE001";
 	private static final String BADGE = "\uE000";
 	private static final String MAIL_ICON = "\uE004";
 	private static final String MAIL_BADGE = "\uE003";
+	private static final String MAIL_READ_ICON = "\uE006";
+	private static final String MAIL_READ_BADGE = "\uE005";
 
 	/** Zero-width glyph with a negative advance, used to nudge the line left. */
 	private static final StyleSpriteSource SHIFT_FONT =
@@ -249,14 +258,14 @@ public final class ChatBridgeHooks {
 
 	/** A mail body, shown only once the mail is read. */
 	public static void showMail(String sender, String content) {
-		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
-				" " + sender + ": ", MAIL_COLOR, content, MAIL_TEXT_COLOR);
+		themedLine(MAIL_READ_ICON_FONT, MAIL_READ_ICON, MAIL_READ_BADGE_FONT, MAIL_READ_BADGE,
+				" " + sender + ": ", MAIL_COLOR, content, MAIL_READ_COLOR);
 	}
 
 	/** A mail notice such as {@code You have 2 new mails}, drawn in the mail theme. */
 	public static void showMailNotice(String text) {
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
-				" ", MAIL_TEXT_COLOR, text, MAIL_TEXT_COLOR);
+				" ", MAIL_COLOR, text, MAIL_COLOR);
 	}
 
 	/**
@@ -265,7 +274,7 @@ public final class ChatBridgeHooks {
 	 */
 	public static void showMailEntry(String text) {
 		post(Text.literal("    " + text)
-				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_TEXT_COLOR)))));
+				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_COLOR)))));
 	}
 
 	/**

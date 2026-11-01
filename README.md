@@ -113,9 +113,10 @@ Wynncraft command, rename the literal in `BridgeCommands.java`.
 
 - **Never auto-sends to Wynncraft.** Discord messages go straight to the chat HUD
   (`ChatHud.addMessage`), not through the server connection.
-- Bridged Discord chat is themed pink: the arrow, badge and message use `#ff3b80` with white
-  badge lettering, the sender name `#cf0042`. Mail glyphs and its name-less lines are
-  `#ffe3c5`, the sender on a read mail `#ffb86c`. Glyphs come from `tools/gen_badge.py`.
+- Bridged Discord chat is themed pink: the arrow, badge and message use `#fd4988` with white
+  badge lettering, the sender name `#cf0042`. Mail is amber `#ffb86c`; a mail opened with
+  `/mail read` switches its glyphs and the body to the paler `#ffe3c5`. Glyphs come from
+  `tools/gen_badge.py`.
 - `/bridge update` trusts the GitHub release over HTTPS and swaps the jar in `mods/`; the
   new version loads on the next start.
 - The server dedupes guild chat for 5 seconds, because every connected client sees the same
@@ -124,7 +125,8 @@ Wynncraft command, rename the literal in `BridgeCommands.java`.
   port private (VPN/tunnel) or put it behind TLS with auth.
 - Chat is truncated to 240 characters by the server, mail to 900.
 - Mail is stored in SQLite on the bot (`data/bridge.sqlite3`) plus a local copy in
-  `config/wynnbridge-mail.json`; reading a mail removes it from that local copy.
+  `config/wynnbridge-mail.json`; reading a mail marks it read in both, and the local copy keeps
+  a small tombstone so a re-pushed mail cannot return to the inbox.
 
 ## If compilation fails
 
