@@ -28,7 +28,6 @@ public final class BridgeCommands {
 												String player = StringArgumentType.getString(context, "player");
 												String text = StringArgumentType.getString(context, "text");
 												socket.sendMail(player, text);
-												feedback(context.getSource(), "sending mail to " + player);
 												return 1;
 											}))))
 					.then(ClientCommandManager.literal("inbox")
@@ -42,7 +41,7 @@ public final class BridgeCommands {
 									}
 								}
 								if (unread.isEmpty()) {
-									ChatBridgeHooks.showMailNotice("You have no new Mail!");
+									ChatBridgeHooks.showMailCount(0);
 									return 0;
 								}
 								ChatBridgeHooks.showMailCount(unread.size());

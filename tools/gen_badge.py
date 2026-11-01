@@ -26,6 +26,9 @@ LETTERS = {
     "L": ["1000", "1000", "1000", "1000", "1111"],
     "M": ["10001", "11011", "10101", "10001", "10001"],
     "R": ["11110", "10001", "11110", "10010", "10001"],
+    "S": ["01111", "10000", "01110", "00001", "11110"],
+    "T": ["11111", "00100", "00100", "00100", "00100"],
+    "Y": ["10001", "10001", "01010", "00100", "00100"],
 }
 
 # Right-pointing arrow with a flat left edge, so the chat line starts at the
@@ -57,24 +60,24 @@ CHANNELS = {
         "label": "BRIDGE",
         "bg": (0xFD, 0x49, 0x88, 255),
         "mid": (0xB1, 0x33, 0x5F, 255),
-        "fg": (0xFF, 0xFF, 0xFF, 255),
+        "fg": (0x00, 0x00, 0x00, 255),
         "ink": (0x00, 0x00, 0x00, 255),
     },
-    # Mail, amber glyphs
+    # Mail, brighter mail colour glyphs
     "mail": {
-        "label": "MAIL",
-        "bg": (0xFF, 0xB8, 0x6C, 255),
-        "mid": (0xC8, 0x85, 0x43, 255),
-        "fg": (0x35, 0x22, 0x0D, 255),
-        "ink": (0x35, 0x22, 0x0D, 255),
-    },
-    # Mail opened with /mail read, paler glyphs
-    "mail_read": {
         "label": "MAIL",
         "bg": (0xFF, 0xE3, 0xC5, 255),
         "mid": (0xD9, 0xA9, 0x7C, 255),
         "fg": (0x35, 0x22, 0x0D, 255),
         "ink": (0x35, 0x22, 0x0D, 255),
+    },
+    # Mod messages, #50fa7b glyphs
+    "system": {
+        "label": "SYSTEM",
+        "bg": (0x50, 0xFA, 0x7B, 255),
+        "mid": (0x2F, 0xA3, 0x4F, 255),
+        "fg": (0x00, 0x00, 0x00, 255),
+        "ink": (0x00, 0x00, 0x00, 255),
     },
 }
 

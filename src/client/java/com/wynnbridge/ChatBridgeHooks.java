@@ -8,7 +8,6 @@ import net.minecraft.text.Style;
 import net.minecraft.text.StyleSpriteSource;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Formatting;
 
 import java.util.Locale;
 
@@ -184,8 +183,11 @@ public final class ChatBridgeHooks {
 	/** Colour of the sender name on a mail line. */
 	private static final int MAIL_COLOR = 0xFFB86C;
 
-	/** The brighter mail colour: a read mail's body and the unread count. */
+	/** The brighter mail colour: the unread count and every mail badge. */
 	private static final int MAIL_BRIGHT_COLOR = 0xFFE3C5;
+
+	/** Colour used for the mod's own notices, drawn on the SYSTEM badge. */
+	private static final int SYSTEM_COLOR = 0x50FA7B;
 
 	/** Bitmap fonts shipped in resources: the Discord icon and the BRIDGE badge. */
 	private static final StyleSpriteSource ICON_FONT =
@@ -201,19 +203,19 @@ public final class ChatBridgeHooks {
 	private static final StyleSpriteSource MAIL_BADGE_FONT =
 			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "mail_badge"));
 
-	/** The mail glyphs again, paler, for a mail that has just been read. */
-	private static final StyleSpriteSource MAIL_READ_ICON_FONT =
-			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "mail_read_icon"));
+	/** Glyphs for the mod's own notices. */
+	private static final StyleSpriteSource SYSTEM_ICON_FONT =
+			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "system_icon"));
 
-	private static final StyleSpriteSource MAIL_READ_BADGE_FONT =
-			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "mail_read_badge"));
+	private static final StyleSpriteSource SYSTEM_BADGE_FONT =
+			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "system_badge"));
 
 	private static final String ICON = "\uE001";
 	private static final String BADGE = "\uE000";
 	private static final String MAIL_ICON = "\uE004";
 	private static final String MAIL_BADGE = "\uE003";
-	private static final String MAIL_READ_ICON = "\uE006";
-	private static final String MAIL_READ_BADGE = "\uE005";
+	private static final String SYSTEM_ICON = "\uE008";
+	private static final String SYSTEM_BADGE = "\uE007";
 
 	/** Zero-width glyph with a negative advance, used to nudge the line left. */
 	private static final StyleSpriteSource SHIFT_FONT =
@@ -257,20 +259,22 @@ public final class ChatBridgeHooks {
 	}
 
 	/** A mail body, shown only once the mail is read. */
+	/** A mail body, shown only once the mail is read. */
 	public static void showMail(String sender, String content) {
-		themedLine(MAIL_READ_ICON_FONT, MAIL_READ_ICON, MAIL_READ_BADGE_FONT, MAIL_READ_BADGE,
+		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
 				" " + sender + ": ", MAIL_COLOR, content, MAIL_BRIGHT_COLOR);
 	}
 
-	/** A mail notice such as {@code You have no new Mail.}, drawn in the mail theme. */
+	/** A mail notice drawn in the mail theme. */
 	public static void showMailNotice(String text) {
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
 				" ", MAIL_COLOR, text, MAIL_COLOR);
 	}
 
 	/**
-	 * {@code You have 5 new Mails!} with only the count in the brighter mail
+	 * {@code You have 5 new Mails.} with only the count in the brighter mail
 	 * colour, for both the login notice and the {@code /mail inbox} header.
+	 * An empty inbox reads {@code You have no new Mail.}
 	 */
 	public static void showMailCount(int count) {
 		TextColor amber = TextColor.fromRgb(MAIL_COLOR);
@@ -278,8 +282,9 @@ public final class ChatBridgeHooks {
 
 		MutableText line = themedHead(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE);
 		line.append(Text.literal(" You have ").styled(style -> withChatFont(style.withColor(amber))));
-		line.append(Text.literal(Integer.toString(count)).styled(style -> withChatFont(style.withColor(bright))));
-		line.append(Text.literal(count == 1 ? " new Mail!" : " new Mails!")
+		line.append(Text.literal(count == 0 ? "no" : Integer.toString(count))
+				.styled(style -> withChatFont(style.withColor(bright))));
+		line.append(Text.literal(count == 1 ? " new Mail." : " new Mails.")
 				.styled(style -> withChatFont(style.withColor(amber))));
 		post(line);
 	}
@@ -326,9 +331,10 @@ public final class ChatBridgeHooks {
 		return line;
 	}
 
+	/** A notice from the mod itself, drawn on the SYSTEM badge. */
 	public static void showSystem(String message) {
-		post(Text.literal("[Bridge] ").formatted(Formatting.DARK_AQUA)
-				.append(Text.literal(message).formatted(Formatting.GRAY)));
+		themedLine(SYSTEM_ICON_FONT, SYSTEM_ICON, SYSTEM_BADGE_FONT, SYSTEM_BADGE,
+				" ", SYSTEM_COLOR, message, SYSTEM_COLOR);
 	}
 
 	private static void post(MutableText text) {
