@@ -34,34 +34,26 @@ public final class BridgeCommands {
 							.executes(context -> {
 								// Pull anything that arrived since the last poll before listing.
 								socket.mailFetch();
-								List<MailStore.Mail> unread = new ArrayList<>();
-								for (MailStore.Mail mail : mailStore.all()) {
-									if (!mail.read) {
-										unread.add(mail);
-									}
-								}
-								if (unread.isEmpty()) {
-									ChatBridgeHooks.showMailCount(0);
-									return 0;
-								}
+								List<MailStore.Mail> unread = unreadMail(mailStore);
 								ChatBridgeHooks.showMailCount(unread.size());
-								for (MailStore.Mail mail : unread) {
-									ChatBridgeHooks.showMailEntry(mail.id, " from " + mail.sender);
+								for (int i = 0; i < unread.size(); i++) {
+									ChatBridgeHooks.showMailEntry(i + 1, " from " + unread.get(i).sender);
 								}
-								return 1;
+								return unread.isEmpty() ? 0 : 1;
 							}))
 					.then(ClientCommandManager.literal("read")
-							.then(ClientCommandManager.argument("id", IntegerArgumentType.integer(1))
+							.then(ClientCommandManager.argument("number", IntegerArgumentType.integer(1))
 									.executes(context -> {
-										int id = IntegerArgumentType.getInteger(context, "id");
-										MailStore.Mail mail = mailStore.find(id);
-										if (mail == null) {
-											ChatBridgeHooks.showMailNotice("no mail with id " + id);
+										int number = IntegerArgumentType.getInteger(context, "number");
+										List<MailStore.Mail> unread = unreadMail(mailStore);
+										if (number > unread.size()) {
+											ChatBridgeHooks.showMailNotice("no mail #" + number + " in the inbox");
 											return 0;
 										}
+										MailStore.Mail mail = unread.get(number - 1);
 										ChatBridgeHooks.showMail(mail.sender, mail.content);
-										mailStore.markRead(id);
-										socket.mailRead(id);
+										mailStore.markRead(mail.id);
+										socket.mailRead(mail.id);
 										return 1;
 									}))));
 
@@ -147,6 +139,16 @@ public final class BridgeCommands {
 								return 1;
 							})));
 		});
+	}
+
+	private static List<MailStore.Mail> unreadMail(MailStore mailStore) {
+		List<MailStore.Mail> unread = new ArrayList<>();
+		for (MailStore.Mail mail : mailStore.all()) {
+			if (!mail.read) {
+				unread.add(mail);
+			}
+		}
+		return unread;
 	}
 
 	private static void feedback(FabricClientCommandSource source, String message) {

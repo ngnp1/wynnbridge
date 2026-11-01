@@ -73,22 +73,6 @@ public final class MailStore {
 		return count;
 	}
 
-	/** A copy of the stored mail with this id, or {@code null}. */
-	public synchronized Mail find(int id) {
-		for (Mail mail : mails) {
-			if (mail.id == id) {
-				Mail copy = new Mail();
-				copy.id = mail.id;
-				copy.sender = mail.sender;
-				copy.content = mail.content;
-				copy.createdAt = mail.createdAt;
-				copy.read = mail.read;
-				return copy;
-			}
-		}
-		return null;
-	}
-
 	/**
 	 * Marks a mail read. The entry stays behind as a tombstone: the fields still
 	 * hold the id, so a re-push of the same mail is ignored by {@link #add} instead

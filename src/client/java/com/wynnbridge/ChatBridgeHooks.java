@@ -272,7 +272,7 @@ public final class ChatBridgeHooks {
 	}
 
 	/**
-	 * {@code You have 5 new Mails.} with only the count in the brighter mail
+	 * {@code You have 5 new Mails!} with only the count in the brighter mail
 	 * colour, for both the login notice and the {@code /mail inbox} header.
 	 * An empty inbox reads {@code You have no new Mail.}
 	 */
@@ -280,25 +280,35 @@ public final class ChatBridgeHooks {
 		TextColor amber = TextColor.fromRgb(MAIL_COLOR);
 		TextColor bright = TextColor.fromRgb(MAIL_BRIGHT_COLOR);
 
+		String suffix;
+		if (count <= 0) {
+			suffix = " new Mail.";
+		} else if (count == 1) {
+			suffix = " new Mail!";
+		} else {
+			suffix = " new Mails!";
+		}
+
 		MutableText line = themedHead(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE);
 		line.append(Text.literal(" You have ").styled(style -> withChatFont(style.withColor(amber))));
 		line.append(Text.literal(count == 0 ? "no" : Integer.toString(count))
 				.styled(style -> withChatFont(style.withColor(bright))));
-		line.append(Text.literal(count == 1 ? " new Mail." : " new Mails.")
-				.styled(style -> withChatFont(style.withColor(amber))));
+		line.append(Text.literal(suffix).styled(style -> withChatFont(style.withColor(amber))));
 		post(line);
 	}
 
 	/**
 	 * A continuation line under a mail notice: no badge, indented to line up with
-	 * the text of the badge line above it, with the mail id in the brighter colour.
+	 * the text of the badge line above it, with the inbox position in the brighter
+	 * colour. Positions count the unread mail only, so they start at 1 again once
+	 * the earlier ones are read.
 	 */
-	public static void showMailEntry(int id, String suffix) {
+	public static void showMailEntry(int number, String suffix) {
 		TextColor amber = TextColor.fromRgb(MAIL_COLOR);
 		TextColor bright = TextColor.fromRgb(MAIL_BRIGHT_COLOR);
 
 		MutableText line = Text.empty();
-		line.append(Text.literal("    #" + id).styled(style -> withChatFont(style.withColor(bright))));
+		line.append(Text.literal("    #" + number).styled(style -> withChatFont(style.withColor(bright))));
 		line.append(Text.literal(suffix).styled(style -> withChatFont(style.withColor(amber))));
 		post(line);
 	}
