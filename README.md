@@ -6,7 +6,7 @@ Client-side mod that connects Minecraft to the bot's chat bridge:
 - **Discord -> game:** messages from the bridge channel are injected into your chat HUD only —
   nothing is sent to Wynncraft.
 - **Mail:** `/mail send <player> <text>` stores a message server-side. The recipient sees a themed
-  `You have <n> new Mails.` line when they log in or when mail arrives; the body is shown by
+  `You have <n> new Mail!` line when they log in or when mail arrives; the body is shown by
   `/mail read <id>`, which also drops it from the inbox. Pending mail is also polled every
   15 seconds, so a mail the server could not push still shows up without a relog.
 

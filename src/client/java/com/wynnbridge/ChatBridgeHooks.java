@@ -269,7 +269,7 @@ public final class ChatBridgeHooks {
 	}
 
 	/**
-	 * {@code You have 5 new Mails.} with only the count in the brighter mail
+	 * {@code You have 5 new Mails!} with only the count in the brighter mail
 	 * colour, for both the login notice and the {@code /mail inbox} header.
 	 */
 	public static void showMailCount(int count) {
@@ -279,18 +279,23 @@ public final class ChatBridgeHooks {
 		MutableText line = themedHead(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE);
 		line.append(Text.literal(" You have ").styled(style -> withChatFont(style.withColor(amber))));
 		line.append(Text.literal(Integer.toString(count)).styled(style -> withChatFont(style.withColor(bright))));
-		line.append(Text.literal(count == 1 ? " new Mail." : " new Mails.")
+		line.append(Text.literal(count == 1 ? " new Mail!" : " new Mails!")
 				.styled(style -> withChatFont(style.withColor(amber))));
 		post(line);
 	}
 
 	/**
 	 * A continuation line under a mail notice: no badge, indented to line up with
-	 * the text of the badge line above it.
+	 * the text of the badge line above it, with the mail id in the brighter colour.
 	 */
-	public static void showMailEntry(String text) {
-		post(Text.literal("    " + text)
-				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_COLOR)))));
+	public static void showMailEntry(int id, String suffix) {
+		TextColor amber = TextColor.fromRgb(MAIL_COLOR);
+		TextColor bright = TextColor.fromRgb(MAIL_BRIGHT_COLOR);
+
+		MutableText line = Text.empty();
+		line.append(Text.literal("    #" + id).styled(style -> withChatFont(style.withColor(bright))));
+		line.append(Text.literal(suffix).styled(style -> withChatFont(style.withColor(amber))));
+		post(line);
 	}
 
 	/**
