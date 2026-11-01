@@ -4,7 +4,9 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.text.StyleSpriteSource;
 import net.minecraft.text.TextColor;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Formatting;
 
 import java.util.Locale;
@@ -160,10 +162,16 @@ public final class ChatBridgeHooks {
 	/** Colour used for messages mirrored in from Discord. */
 	private static final int BRIDGE_COLOR = 0xACD8AA;
 
+	/** Bitmap font shipped in resources, holding the {@code BRIDGE} badge glyph. */
+	private static final StyleSpriteSource BADGE_FONT =
+			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "badge"));
+
+	private static final String BADGE = "\uE000";
+
 	public static void showDiscordChat(String author, String content) {
 		TextColor color = TextColor.fromRgb(BRIDGE_COLOR);
-		post(Text.literal("BRIDGE ").styled(style -> style.withColor(color).withBold(true))
-				.append(Text.literal(author + ": ").styled(style -> style.withColor(color)))
+		post(Text.literal(BADGE).styled(style -> style.withFont(BADGE_FONT))
+				.append(Text.literal(" " + author + ": ").styled(style -> style.withColor(color)))
 				.append(Text.literal(content).styled(style -> style.withColor(color))));
 	}
 
