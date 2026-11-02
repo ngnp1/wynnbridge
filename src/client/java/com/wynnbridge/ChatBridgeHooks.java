@@ -298,6 +298,14 @@ public final class ChatBridgeHooks {
 	}
 
 	/**
+	 * A blank line, used to separate the inbox head from its mails and the unread
+	 * block from the read one.
+	 */
+	public static void showMailBlank() {
+		post(Text.literal(" "));
+	}
+
+	/**
 	 * A continuation line under a mail notice: no badge, indented to line up with
 	 * the text of the badge line above it, with the inbox position and the word
 	 * "from" in the brighter colour. {@code <unr>}/{@code <r>} mark whether the

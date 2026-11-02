@@ -95,6 +95,7 @@ install nothing extra: Cloudflare Tunnel (`wss://bridge.example.com/ws`) or
 | `/bridge status` | Server URL, connection state, unread count |
 | `/bridge reconnect` | Force a reconnect |
 | `/bridge update` | Download the newest GitHub release into `mods/` (restart to apply) |
+| `/bridge help` | List every command in chat |
 
 Client commands are handled locally and never sent to Wynncraft. If `/mail` collides with a
 Wynncraft command, rename the literal in `BridgeCommands.java`.

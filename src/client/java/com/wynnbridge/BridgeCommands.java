@@ -146,6 +146,11 @@ public final class BridgeCommands {
 								feedback(context.getSource(), "current version: " + BridgeUpdater.currentVersion());
 								BridgeUpdater.checkAndInstall();
 								return 1;
+							}))
+					.then(ClientCommandManager.literal("help")
+							.executes(context -> {
+								showHelp(context.getSource());
+								return 1;
 							})));
 		});
 	}
@@ -229,15 +234,22 @@ public final class BridgeCommands {
 
 		ChatBridgeHooks.showMailNotice(
 				readFilter == null ? "Inbox" : (readFilter ? "Inbox <read>" : "Inbox <unread>"));
+		ChatBridgeHooks.showMailBlank();
 
 		int from = (page - 1) * MAIL_PAGE_SIZE;
 		int to = Math.min(listed.size(), from + MAIL_PAGE_SIZE);
+		Boolean previousRead = null;
 		for (int i = from; i < to; i++) {
 			MailStore.Mail mail = listed.get(i);
+			// Keep the unread and read blocks apart when both land on one page.
+			if (previousRead != null && !previousRead && mail.read) {
+				ChatBridgeHooks.showMailBlank();
+			}
 			// Number the line by its place in the whole inbox, so /mail read and
 			// /mail clear agree with what the filtered views print.
 			int number = mails.indexOf(mail) + 1;
 			ChatBridgeHooks.showMailEntry(number, mail.read, mail.title, mail.sender);
+			previousRead = mail.read;
 		}
 		return to - from;
 	}
@@ -316,6 +328,22 @@ public final class BridgeCommands {
 		ChatBridgeHooks.showMailNotice("Cleared " + removed + (removed == 1 ? " mail." : " mails."));
 		ChatBridgeHooks.showMailCount(mailStore.unreadCount());
 		return removed;
+	}
+
+	private static void showHelp(FabricClientCommandSource source) {
+		feedback(source, "Wynn Bridge commands:");
+		feedback(source, "/mail send <player> <title> <text> - send mail (quote multi-word titles)");
+		feedback(source, "/mail inbox [unread|read] [page] - list mail, unread first");
+		feedback(source, "/mail read <n> - open the mail at position n");
+		feedback(source, "/mail clear <all|n|x-y> [from <player>] - delete mail");
+		feedback(source, "/bridge join <wss://host/ws#token> - set the bridge link");
+		feedback(source, "/bridge status - server, connection and chat settings");
+		feedback(source, "/bridge reconnect - reconnect to the bridge");
+		feedback(source, "/bridge pattern <regex> - matcher for guild chat lines");
+		feedback(source, "/bridge debug on|off - log incoming chat lines");
+		feedback(source, "/bridge reload - reload config/wynnbridge.json");
+		feedback(source, "/bridge update - download the newest release");
+		feedback(source, "/bridge help - this list");
 	}
 
 	private static void feedback(FabricClientCommandSource source, String message) {
