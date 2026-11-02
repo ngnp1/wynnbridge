@@ -24,3 +24,7 @@ bin/
 
 # Local agent notes, kept out of the repo
 AGENTS.md
+
+# Stray sqlite databases (the bridge keeps its own in the bot repo)
+*.sqlite3
+data/
