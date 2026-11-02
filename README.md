@@ -88,7 +88,7 @@ install nothing extra: Cloudflare Tunnel (`wss://bridge.example.com/ws`) or
 | Command | Effect |
 | --- | --- |
 | `/mail send <player> <title> <text>` | Send mail through the bridge; quote the title for several words (max 60 chars) |
-| `/mail inbox [unread\|read] [page]` | Heads with `Inbox` / `Inbox <unread>` / `Inbox <read>`, then ten `<unr>`/`<r>` `#n <title> from <sender>` lines, unread first |
+| `/mail inbox [unread\|read] [page]` | Heads with `Inbox - Page x` / `Inbox <unread> - Page x` / `Inbox <read> - Page x`, then ten `<unr>`/`<r>` `#n <title> from <sender>` lines, unread first |
 | `/mail read <n>` | Show that mail and mark it read; it stays in the inbox |
 | `/mail clear <all\|n\|x-y> [from <player>]` | Delete one mail, an inclusive range, or everything; `from` narrows it to one sender |
 | `/bridge join <link>` | Save a `wss://host/ws#token` link and reconnect |

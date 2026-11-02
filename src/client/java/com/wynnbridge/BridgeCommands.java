@@ -233,7 +233,8 @@ public final class BridgeCommands {
 		}
 
 		ChatBridgeHooks.showMailNotice(
-				readFilter == null ? "Inbox" : (readFilter ? "Inbox <read>" : "Inbox <unread>"));
+				(readFilter == null ? "Inbox" : (readFilter ? "Inbox <read>" : "Inbox <unread>"))
+						+ " - Page " + page);
 		ChatBridgeHooks.showMailBlank();
 
 		int from = (page - 1) * MAIL_PAGE_SIZE;
