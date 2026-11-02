@@ -58,6 +58,7 @@ public final class PlayerTitles {
 	public static void replaceAll(Map<String, String> incoming) {
 		replace(incoming == null ? Map.of() : incoming);
 		save();
+		WynnBridgeClient.LOGGER.info("Player titles: {} set", titles.size());
 	}
 
 	private static void replace(Map<String, String> incoming) {
@@ -92,6 +93,23 @@ public final class PlayerTitles {
 			return null;
 		}
 		return titles.get(playerName.trim().toLowerCase(Locale.ROOT));
+	}
+
+	/**
+	 * Fallback for labels that carry extra text around the name (team prefixes,
+	 * rank glyphs): any stored name that appears in the label wins.
+	 */
+	public static String find(String label) {
+		if (label == null || label.isEmpty()) {
+			return null;
+		}
+		String haystack = label.toLowerCase(Locale.ROOT);
+		for (Map.Entry<String, String> entry : titles.entrySet()) {
+			if (haystack.contains(entry.getKey())) {
+				return entry.getValue();
+			}
+		}
+		return null;
 	}
 
 	/** Turns {@code &aHello} / {@code &#ff8800Hello} into styled text. */
