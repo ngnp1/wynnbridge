@@ -4,8 +4,7 @@
   "package": "com.wynnbridge.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "PlayerEntityRendererMixin",
-    "PlayerEntityRenderStateMixin"
+    "PlayerEntityRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
