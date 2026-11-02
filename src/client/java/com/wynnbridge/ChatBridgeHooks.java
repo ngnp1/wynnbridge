@@ -258,11 +258,13 @@ public final class ChatBridgeHooks {
 				" " + author + ": ", BRIDGE_COLOR, content, BRIDGE_MESSAGE_COLOR);
 	}
 
-	/** A mail body, shown only once the mail is read. */
-	/** A mail body, shown only once the mail is read. */
-	public static void showMail(String sender, String content) {
+	/** A read mail: the badge and its title on one line, the body on the next. */
+	public static void showMail(String sender, String title, String content) {
+		String heading = title == null || title.isBlank() ? sender : title.trim();
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
-				" " + sender + ": ", MAIL_COLOR, content, MAIL_BRIGHT_COLOR);
+				" ", MAIL_COLOR, heading, MAIL_COLOR);
+		post(Text.literal("    " + content)
+				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_BRIGHT_COLOR)))));
 	}
 
 	/** A mail notice drawn in the mail theme. */

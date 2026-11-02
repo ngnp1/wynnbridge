@@ -263,7 +263,7 @@ public final class BridgeCommands {
 			return 0;
 		}
 		MailStore.Mail mail = mails.get(number - 1);
-		ChatBridgeHooks.showMail(mail.sender, mail.content);
+		ChatBridgeHooks.showMail(mail.sender, mail.title, mail.content);
 		mailStore.markRead(mail.id);
 		socket.mailRead(mail.id);
 		return 1;
