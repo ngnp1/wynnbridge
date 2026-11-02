@@ -19,6 +19,7 @@ public final class WynnBridgeClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		config = BridgeConfig.load();
 		mailStore = new MailStore();
+		PlayerTitles.load();
 		socket = new BridgeSocket(config, mailStore);
 
 		ChatBridgeHooks.register(socket, config);

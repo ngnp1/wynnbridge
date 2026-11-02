@@ -5,12 +5,24 @@ Client-side mod that connects Minecraft to the bot's chat bridge:
 - **Wynn -> Discord:** guild chat lines are read client-side and forwarded to the bridge channel.
 - **Discord -> Wynn:** messages from the bridge channel are injected into your chat HUD only —
   nothing is sent to Wynncraft.
+- **Titles:** admins set a title per player in Discord (`/title set <player> <title>`); the mod
+  draws it one line above that player's name in game.
 - **Mail:** `/mail send <player> <title> <text>` stores a message server-side. Titles may be
   quoted to hold several words and are capped at 60 characters. The recipient sees a themed
   `You have <n> new Mails!` line when they log in or when mail arrives; `/mail inbox` lists every
   mail, unread first, with `<unr>`/`<r>` tags and paging. `/mail read <n>` opens one and
   `/mail clear` deletes them. Pending mail is polled every 15 seconds, so a mail the server
   could not push still shows up without a relog.
+
+## Player titles
+
+`/title set <player> <title>`, `/title clear <player>` and `/title list` are administrator-only
+Discord commands. The bot sends the whole title map to every connected client on login and
+whenever it changes, and the mod caches it in `config/wynnbridge-titles.json` so titles still
+show when the bridge is offline.
+
+Titles are legacy text: `&c`-style colour codes, `&l`-style modifiers and `&#rrggbb` hex all
+work. They are drawn above the nametag, which is the one place this mod needs a mixin.
 
 The backend (Discord bot + WebSocket server) lives in the companion bot repository, in
 `cogs/chat_bridge.py`.

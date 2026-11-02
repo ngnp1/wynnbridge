@@ -14,6 +14,12 @@
 			"com.wynnbridge.WynnBridgeClient"
 		]
 	},
+	"mixins": [
+		{
+			"config": "wynnbridge.mixins.json",
+			"environment": "client"
+		}
+	],
 	"depends": {
 		"fabricloader": ">=0.18.0",
 		"fabric-api": "*",

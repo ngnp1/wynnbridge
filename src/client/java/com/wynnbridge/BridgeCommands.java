@@ -326,7 +326,7 @@ public final class BridgeCommands {
 
 		int removed = mailStore.remove(ids);
 		socket.mailDelete(ids);
-		ChatBridgeHooks.showMailNotice("Cleared " + removed + (removed == 1 ? " mail." : " mails."));
+		ChatBridgeHooks.showMailNotice("Cleared " + removed + (removed == 1 ? " Mail." : " Mails."));
 		ChatBridgeHooks.showMailCount(mailStore.unreadCount());
 		return removed;
 	}

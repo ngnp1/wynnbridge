@@ -2,6 +2,7 @@ package com.wynnbridge;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.net.URI;
@@ -10,7 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -384,6 +387,17 @@ public final class BridgeSocket {
 					WynnBridgeClient.LOGGER.info("discord -> game: {}: {}", author, content);
 				}
 				ChatBridgeHooks.showDiscordChat(author, content);
+			}
+			case "titles" -> {
+				Map<String, String> incoming = new HashMap<>();
+				if (payload.has("titles") && payload.get("titles").isJsonObject()) {
+					for (Map.Entry<String, JsonElement> entry : payload.getAsJsonObject("titles").entrySet()) {
+						if (entry.getValue().isJsonPrimitive()) {
+							incoming.put(entry.getKey(), entry.getValue().getAsString());
+						}
+					}
+				}
+				PlayerTitles.replaceAll(incoming);
 			}
 			case "mail" -> {
 				int id = payload.has("id") ? payload.get("id").getAsInt() : 0;
