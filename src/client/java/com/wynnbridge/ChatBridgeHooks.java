@@ -2,6 +2,8 @@ package com.wynnbridge;
 
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.text.Style;
@@ -9,6 +11,8 @@ import net.minecraft.text.StyleSpriteSource;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.Identifier;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -276,18 +280,115 @@ public final class ChatBridgeHooks {
 		showMailBody(heading, content);
 	}
 
-	/** The badge line with {@code heading}, a gap, then a flush-left {@code > body} line. */
+	/** The marker drawn before every opened mail body. */
+	private static final String MAIL_BODY_MARKER = "> ";
+
+	/** Safety margin so the chat HUD never re-wraps a line this mod already wrapped. */
+	private static final int MAIL_WRAP_MARGIN = 2;
+
+	/** The badge line with {@code heading}, a gap, then the wrapped body lines. */
 	private static void showMailBody(String heading, String content) {
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
 				" ", MAIL_COLOR, heading, MAIL_COLOR);
 		showMailBlank();
 
+		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		Style markerStyle = withChatFont(Style.EMPTY
+				.withColor(TextColor.fromRgb(MAIL_COLOR)).withBold(true));
+		Style bodyStyle = withChatFont(Style.EMPTY.withColor(TextColor.fromRgb(MAIL_BRIGHT_COLOR)));
+
+		int width = Math.max(40, chatLineWidth());
+		int markerWidth = renderer.getWidth(Text.literal(MAIL_BODY_MARKER).setStyle(markerStyle));
+		int spaceWidth = Math.max(1, renderer.getWidth(Text.literal(" ").setStyle(bodyStyle)));
+		// Continuation lines indent by as many spaces as the marker is wide, so
+		// every line of the body starts at the same column as the first.
+		String indent = " ".repeat(Math.max(1, Math.round((float) markerWidth / spaceWidth)));
+		int indentWidth = renderer.getWidth(Text.literal(indent).setStyle(bodyStyle));
+
+		List<String> lines = wrapBody(content,
+				Math.max(1, width - markerWidth - MAIL_WRAP_MARGIN),
+				Math.max(1, width - indentWidth - MAIL_WRAP_MARGIN));
+
+		// One message keeps the body a single chat entry; the chat HUD starts a
+		// new line at every explicit newline, and each line already fits.
 		MutableText body = Text.empty();
-		body.append(Text.literal("> ")
-				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_COLOR))).withBold(true)));
-		body.append(Text.literal(content)
-				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_BRIGHT_COLOR)))));
+		for (int i = 0; i < lines.size(); i++) {
+			if (i == 0) {
+				body.append(Text.literal(MAIL_BODY_MARKER).setStyle(markerStyle));
+			} else {
+				body.append(Text.literal("\n" + indent).setStyle(bodyStyle));
+			}
+			body.append(Text.literal(lines.get(i)).setStyle(bodyStyle));
+		}
 		post(body);
+	}
+
+	/** The width in pixels the chat HUD wraps at, matching how it breaks messages. */
+	private static int chatLineWidth() {
+		MinecraftClient client = MinecraftClient.getInstance();
+		double chatWidth = client.options.getChatWidth().getValue();
+		double chatScale = client.options.getChatScale().getValue();
+		return (int) Math.floor(ChatHud.getWidth(chatWidth) / chatScale);
+	}
+
+	/**
+	 * Greedy word wrap of the body at the two pixel widths: the first line sits
+	 * behind the marker, every later one behind the indent.
+	 */
+	private static List<String> wrapBody(String content, int firstWidth, int restWidth) {
+		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
+		Style style = withChatFont(Style.EMPTY.withColor(TextColor.fromRgb(MAIL_BRIGHT_COLOR)));
+
+		List<String> lines = new ArrayList<>();
+		StringBuilder current = new StringBuilder();
+		int limit = firstWidth;
+
+		for (String word : content.trim().split("\\s+")) {
+			if (word.isEmpty()) {
+				continue;
+			}
+			String candidate = current.isEmpty() ? word : current + " " + word;
+			if (measuredWidth(renderer, style, candidate) <= limit) {
+				current.setLength(0);
+				current.append(candidate);
+				continue;
+			}
+
+			if (!current.isEmpty()) {
+				lines.add(current.toString());
+				current.setLength(0);
+				limit = restWidth;
+			}
+
+			// A single word can still be wider than the line, so split it by
+			// code point rather than mid-surrogate.
+			String rest = word;
+			while (measuredWidth(renderer, style, rest) > limit) {
+				int cut = rest.offsetByCodePoints(0, 1);
+				while (cut < rest.length()) {
+					int next = rest.offsetByCodePoints(cut, 1);
+					if (measuredWidth(renderer, style, rest.substring(0, next)) > limit) {
+						break;
+					}
+					cut = next;
+				}
+				lines.add(rest.substring(0, cut));
+				rest = rest.substring(cut);
+			}
+			current.append(rest);
+		}
+
+		if (!current.isEmpty()) {
+			lines.add(current.toString());
+		}
+		if (lines.isEmpty()) {
+			lines.add("");
+		}
+		return lines;
+	}
+
+	private static int measuredWidth(TextRenderer renderer, Style style, String text) {
+		return renderer.getWidth(Text.literal(text).setStyle(style));
 	}
 
 	/** A mail notice drawn in the mail theme. */
