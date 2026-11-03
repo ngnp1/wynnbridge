@@ -5,6 +5,9 @@ import com.wynnbridge.WynnBridgeClient;
 import net.minecraft.client.render.command.LabelCommandRenderer;
 import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
+import net.minecraft.text.StyleSpriteSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -60,9 +63,17 @@ public abstract class LabelCommandsMixin {
 
 		ADDING.set(Boolean.TRUE);
 		try {
+			MutableText titleText = PlayerTitles.toText(title);
+			// Draw the title in the font the name label itself uses (wynnmod's own
+			// nametag font), so the two lines look like they belong together.
+			StyleSpriteSource font = fontOf(text);
+			if (font != null) {
+				titleText.setStyle(titleText.getStyle().withFont(font));
+			}
+
 			matrices.push();
 			matrices.translate(0.0f, LABEL_LINE + TITLE_GAP, 0.0f);
-			add(matrices, labelPos, offset, PlayerTitles.toText(title),
+			add(matrices, labelPos, offset, titleText,
 					seeThrough, light, squaredDistance, cameraState);
 			matrices.pop();
 		} catch (Throwable throwable) {
@@ -70,6 +81,24 @@ public abstract class LabelCommandsMixin {
 		} finally {
 			ADDING.set(Boolean.FALSE);
 		}
+	}
+
+	/** First font declared anywhere in a label's component tree, if any. */
+	private static StyleSpriteSource fontOf(Text text) {
+		if (text == null) {
+			return null;
+		}
+		Style style = text.getStyle();
+		if (style != null && style.getFont() != null) {
+			return style.getFont();
+		}
+		for (Text sibling : text.getSiblings()) {
+			StyleSpriteSource found = fontOf(sibling);
+			if (found != null) {
+				return found;
+			}
+		}
+		return null;
 	}
 
 	/** The title for a label, matched against the text the label carries. */
