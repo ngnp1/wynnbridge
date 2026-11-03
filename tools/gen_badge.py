@@ -1,38 +1,35 @@
 """Generate the channel badges and the cat-arrow icon shipped with the mod.
 
-The badge lettering is cut from the Serified Font resource pack's ascii.png:
-Minecraft's own font atlas with serifs. Glyphs are laid out exactly as the
-vanilla provider does (two blank rows, then ASCII from U+0020, one-cell advance
-plus a 1 px gap), so the labels read like the game's chat font. They are 7 px
-tall, which keeps a 1 px border inside the 9 px pill next to the 7 px icon.
+Both glyphs are 8 px tall, the same as Minecraft's default font, so a themed
+line has exactly the height of a normal chat line and shares its baseline.
 The badge fill matches the colour the mod draws that channel's text in.
 
-Run from the repo root:  python3 tools/gen_badge.py [path/to/pack.zip]
-The pack defaults to the PrismLauncher instance's Serified Font v1.2.zip; only
-the baked PNGs are needed to build the mod.
+Run from the repo root:  python3 tools/gen_badge.py
 """
 
-import sys
-import zipfile
 from pathlib import Path
 
 from PIL import Image, ImageDraw
 
 CLEAR = (0, 0, 0, 0)
 
-# The icons are 7 px tall and the badge lettering is 7 px, so the pill is 9 px
-# and both glyphs span the same band above the baseline.
-ICON_HEIGHT = 7
-BADGE_HEIGHT = 9
+HEIGHT = 7
 
-# The ascii sheet is a 16x16 grid of 8 px cells. The first two rows of the
-# vanilla provider are blank, so printable ASCII starts on the third row.
-SHEET_CELL = 8
-SHEET_ROWS_OFFSET = 2
-
-DEFAULT_PACK = (Path.home() / ".var/app/org.prismlauncher.PrismLauncher/data/"
-                "PrismLauncher/instances/wynncraft_1.21.11/minecraft/resourcepacks/"
-                "Serified Font v1.2.zip")
+# 5x5 hollow letters: 1 px strokes with open counters, like Wynncraft's badges.
+LETTERS = {
+    "A": ["01110", "10001", "11111", "10001", "10001"],
+    "B": ["11110", "10001", "11110", "10001", "11110"],
+    "D": ["11110", "10001", "10001", "10001", "11110"],
+    "E": ["11111", "10000", "11110", "10000", "11111"],
+    "G": ["01110", "10001", "10000", "10011", "01110"],
+    "I": ["111", "010", "010", "010", "111"],
+    "L": ["1000", "1000", "1000", "1000", "1111"],
+    "M": ["10001", "11011", "10101", "10001", "10001"],
+    "R": ["11110", "10001", "11110", "10010", "10001"],
+    "S": ["01111", "10000", "01110", "00001", "11110"],
+    "T": ["11111", "00100", "00100", "00100", "00100"],
+    "Y": ["10001", "10001", "01010", "00100", "00100"],
+}
 
 # Right-pointing arrow with a flat left edge, so the chat line starts at the
 # same place as Wynncraft's own messages.
@@ -88,44 +85,26 @@ ROOT = Path(__file__).resolve().parent.parent
 TEX = ROOT / "src/main/resources/assets/wynnbridge/textures/font"
 
 
-def glyph(sheet: Image.Image, char: str) -> Image.Image:
-    index = ord(char) - 0x20
-    row, col = SHEET_ROWS_OFFSET + index // 16, index % 16
-    return sheet.crop((col * SHEET_CELL, row * SHEET_CELL,
-                       (col + 1) * SHEET_CELL, (row + 1) * SHEET_CELL))
-
-
-def label_image(sheet: Image.Image, label: str) -> Image.Image:
-    """The label set with the sheet's own advances: ink width plus a 1 px gap."""
-    widths = []
-    for char in label:
-        bbox = glyph(sheet, char).getbbox()
-        widths.append(0 if bbox is None else bbox[2])
-    out = Image.new("RGBA", (sum(widths) + len(widths) - 1, SHEET_CELL), CLEAR)
-    x = 0
-    for char, width in zip(label, widths):
-        out.alpha_composite(glyph(sheet, char), (x, 0))
-        x += width + 1
-    return out.crop(out.getbbox())
-
-
-def draw_badge(label: str, bg, fg, sheet: Image.Image) -> Image.Image:
-    """A pill as wide as the ink, with the label centred in 1 px of padding."""
-    text = label_image(sheet, label)
-    ink = Image.new("RGBA", text.size, fg)
-    ink.putalpha(text.getchannel("A"))
-
-    w = text.width + 2
-    img = Image.new("RGBA", (w, BADGE_HEIGHT), CLEAR)
+def draw_badge(label: str, bg, fg) -> Image.Image:
+    widths = [len(LETTERS[c][0]) for c in label]
+    text_w = sum(widths) + (len(label) - 1)
+    w = text_w + 2
+    img = Image.new("RGBA", (w, HEIGHT), CLEAR)
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle([0, 0, w - 1, BADGE_HEIGHT - 1], radius=2, fill=bg)
-    img.alpha_composite(ink, (1, (BADGE_HEIGHT - text.height) // 2))
+    d.rounded_rectangle([0, 0, w - 1, HEIGHT - 1], radius=2, fill=bg)
+    x = 1
+    for ch, cw in zip(label, widths):
+        for ry, row in enumerate(LETTERS[ch]):
+            for rx, bit in enumerate(row):
+                if bit == "1":
+                    d.point((x + rx, 1 + ry), fill=fg)
+        x += cw + 1
     return img
 
 
 def draw_icon(bg, mid, fg) -> Image.Image:
     w = max(len(row) for row in ARROW)
-    img = Image.new("RGBA", (w, ICON_HEIGHT), CLEAR)
+    img = Image.new("RGBA", (w, HEIGHT), CLEAR)
 
     for y, row in enumerate(ARROW):
         for x, ch in enumerate(row):
@@ -144,18 +123,11 @@ def draw_icon(bg, mid, fg) -> Image.Image:
 
 
 def main() -> None:
-    pack_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_PACK
-    if not pack_path.is_file():
-        raise SystemExit(f"resource pack not found: {pack_path}")
-    with zipfile.ZipFile(pack_path) as pack:
-        sheet = Image.open(pack.open("assets/minecraft/textures/font/ascii.png"))
-        sheet = sheet.convert("RGBA")
-
     TEX.mkdir(parents=True, exist_ok=True)
     for name, channel in CHANNELS.items():
         images = {
             name + "_badge.png": draw_badge(
-                channel["label"], channel["bg"], channel.get("ink", channel["fg"]), sheet
+                channel["label"], channel["bg"], channel.get("ink", channel["fg"])
             ),
             name + "_icon.png": draw_icon(channel["bg"], channel["mid"], channel["fg"]),
         }
