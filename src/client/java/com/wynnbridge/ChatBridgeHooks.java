@@ -228,11 +228,11 @@ public final class ChatBridgeHooks {
 	private static final String SHIFT = "\uE002";
 
 	/**
-	 * One pixel of left pull between the arrow and the badge: Wynncraft's own
-	 * channel icon is a pixel narrower than ours, so without this the pill starts
-	 * one column right of the game's badges above it.
+	 * One pixel of right push between the arrow and the badge: Wynncraft's own
+	 * channel line keeps a little air there, so without this the pill starts one
+	 * column left of the game's badges above it.
 	 */
-	private static final String BADGE_PULL = "\uE009";
+	private static final String BADGE_PULL = "\uE00C";
 
 	/**
 	 * Invisible glyphs that advance by an exact number of pixels, so the mail body
