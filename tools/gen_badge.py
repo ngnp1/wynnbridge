@@ -22,6 +22,11 @@ ICON_HEIGHT = 7
 BADGE_HEIGHT = 8
 
 BADGE_FONT_SIZE = 14
+# Render the labels oversized and scale them down, so FreeType does not snap the
+# strokes to a chunky pixel grid at badge size; the boost restores some density
+# to the softened edges without widening the strokes.
+BADGE_SUPERSAMPLE = 2
+BADGE_ALPHA_BOOST = 1.25
 DEFAULT_FONT = Path.home() / "Downloads" / "wynnfruma.ttf"
 
 # Right-pointing arrow with a flat left edge, so the chat line starts at the
@@ -81,9 +86,14 @@ TEX = ROOT / "src/main/resources/assets/wynnbridge/textures/font"
 def draw_badge(label: str, bg, fg, font: ImageFont.FreeTypeFont) -> Image.Image:
     """A pill as wide as the ink, with the label centred in 1 px of padding."""
     left, top, right, bottom = font.getbbox(label)
-    mask = Image.new("L", (right - left + 2, bottom - top + 2), 0)
-    ImageDraw.Draw(mask).text((1 - left, 1 - top), label, font=font, fill=255)
+    mask = Image.new("L", (right - left + 2 * BADGE_SUPERSAMPLE,
+                           bottom - top + 2 * BADGE_SUPERSAMPLE), 0)
+    ImageDraw.Draw(mask).text(
+        (BADGE_SUPERSAMPLE - left, BADGE_SUPERSAMPLE - top), label, font=font, fill=255)
     mask = mask.crop(mask.getbbox())
+    mask = mask.resize((max(1, round(mask.width / BADGE_SUPERSAMPLE)),
+                        max(1, round(mask.height / BADGE_SUPERSAMPLE))), Image.LANCZOS)
+    mask = mask.point(lambda v: min(255, int(v * BADGE_ALPHA_BOOST)))
 
     w = mask.width + 2
     img = Image.new("RGBA", (w, BADGE_HEIGHT), CLEAR)
@@ -118,7 +128,7 @@ def main() -> None:
     font_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_FONT
     if not font_path.is_file():
         raise SystemExit(f"font not found: {font_path}")
-    font = ImageFont.truetype(str(font_path), BADGE_FONT_SIZE)
+    font = ImageFont.truetype(str(font_path), BADGE_FONT_SIZE * BADGE_SUPERSAMPLE)
 
     TEX.mkdir(parents=True, exist_ok=True)
     for name, channel in CHANNELS.items():
