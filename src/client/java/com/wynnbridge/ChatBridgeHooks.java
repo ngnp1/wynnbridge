@@ -264,10 +264,24 @@ public final class ChatBridgeHooks {
 		String heading = trimmed.isEmpty()
 				? sender + ":"
 				: sender + ": \"" + trimmed + "\"";
+		showMailBody(heading, content);
+	}
+
+	/** A sent mail: {@code to recipient: "title"} on one line, a gap, then the body. */
+	public static void showSentMail(String recipient, String title, String content) {
+		String trimmed = title == null ? "" : title.trim();
+		String heading = trimmed.isEmpty()
+				? "to " + recipient + ":"
+				: "to " + recipient + ": \"" + trimmed + "\"";
+		showMailBody(heading, content);
+	}
+
+	/** The badge line with {@code heading}, a gap, then {@code > body} indented below it. */
+	private static void showMailBody(String heading, String content) {
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
 				" ", MAIL_COLOR, heading, MAIL_COLOR);
 		showMailBlank();
-		post(Text.literal("    " + content)
+		post(Text.literal("    > " + content)
 				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_BRIGHT_COLOR)))));
 	}
 

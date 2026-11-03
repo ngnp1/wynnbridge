@@ -50,6 +50,10 @@ public final class BridgeCommands {
 					.then(sentPage(mailStore));
 
 			var read = ClientCommandManager.literal("read")
+					.then(ClientCommandManager.literal("sent")
+							.then(ClientCommandManager.argument("number", IntegerArgumentType.integer(1))
+									.executes(context -> readSentMail(mailStore,
+											IntegerArgumentType.getInteger(context, "number")))))
 					.then(ClientCommandManager.argument("number", IntegerArgumentType.integer(1))
 							.executes(context -> readMail(socket, mailStore,
 									IntegerArgumentType.getInteger(context, "number"))));
@@ -322,6 +326,18 @@ public final class BridgeCommands {
 		return 1;
 	}
 
+	/** Shows a sent mail by its position in {@code /mail sent}; there is no read state. */
+	private static int readSentMail(MailStore mailStore, int number) {
+		List<MailStore.SentMail> sent = mailStore.sent();
+		if (number < 1 || number > sent.size()) {
+			ChatBridgeHooks.showMailNotice("No sent mail #" + number + ".");
+			return 0;
+		}
+		MailStore.SentMail mail = sent.get(number - 1);
+		ChatBridgeHooks.showSentMail(mail.recipient, mail.title, mail.content);
+		return 1;
+	}
+
 	/**
 	 * {@code /mail clear all}, {@code /mail clear 3} or {@code /mail clear 2-5},
 	 * optionally narrowed to one sender with {@code from <player>}. Numbers follow
@@ -431,6 +447,7 @@ public final class BridgeCommands {
 		feedback(source, "/mail inbox [unread|read] [page] - list mail, unread first");
 		feedback(source, "/mail sent [page] - list the mail you sent");
 		feedback(source, "/mail read <n> - open the mail at position n");
+		feedback(source, "/mail read sent <n> - open sent mail at position n");
 		feedback(source, "/mail clear <all|n|x-y> [from <player>] - delete mail");
 		feedback(source, "/mail clear sent <all|n|x-y> - delete sent mail");
 		feedback(source, "/bridge join <wss://host/ws#token> - set the bridge link");
