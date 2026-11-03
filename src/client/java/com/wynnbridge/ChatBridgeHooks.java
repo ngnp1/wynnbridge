@@ -258,11 +258,15 @@ public final class ChatBridgeHooks {
 				" " + author + ": ", BRIDGE_COLOR, content, BRIDGE_MESSAGE_COLOR);
 	}
 
-	/** A read mail: the badge and its title on one line, the body on the next. */
+	/** A read mail: {@code [sender]: "title"} on one line, a gap, then the body. */
 	public static void showMail(String sender, String title, String content) {
-		String heading = title == null || title.isBlank() ? sender : title.trim();
+		String trimmed = title == null ? "" : title.trim();
+		String heading = trimmed.isEmpty()
+				? "[" + sender + "]"
+				: "[" + sender + "]: \"" + trimmed + "\"";
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
 				" ", MAIL_COLOR, heading, MAIL_COLOR);
+		showMailBlank();
 		post(Text.literal("    " + content)
 				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_BRIGHT_COLOR)))));
 	}
@@ -284,11 +288,11 @@ public final class ChatBridgeHooks {
 
 		String suffix;
 		if (count <= 0) {
-			suffix = " new Mail.";
+			suffix = " new mail.";
 		} else if (count == 1) {
-			suffix = " new Mail!";
+			suffix = " new mail!";
 		} else {
-			suffix = " new Mails!";
+			suffix = " new mails!";
 		}
 
 		MutableText line = themedHead(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE);
