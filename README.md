@@ -102,8 +102,8 @@ install nothing extra: Cloudflare Tunnel (`wss://bridge.example.com/ws`) or
 | `/mail send <player> <title> <text>` | Send mail through the bridge; quote the title for several words (max 60 chars) |
 | `/mail inbox [unread\|read] [page]` | Heads with `Inbox - Page x` / `Inbox <unread> - Page x` / `Inbox <read> - Page x`, then ten `<unr>`/`<r>` `#n <title> from <sender>` lines, unread first |
 | `/mail sent [page]` | Heads with `Inbox <sent> - Page x`, then ten `#n <title> to <recipient>` lines in the order they were sent |
-| `/mail read <n>` | Show the mail: `sender: "title"` on the badge line, a gap, then `> body`; marks it read |
-| `/mail read sent <n>` | Show a sent mail: `to recipient: "title"` on the badge line, a gap, then `> body` |
+| `/mail read <n>` | Show the mail: `sender: "title"` on the badge line, a gap, then a flush-left bold amber `>` before the body; marks it read |
+| `/mail read sent <n>` | Show a sent mail: `to recipient: "title"` on the badge line, a gap, then a flush-left bold amber `>` before the body |
 | `/mail clear <all\|n\|x-y> [from <player>]` | Delete one mail, an inclusive range, or everything; `from` narrows it to one sender |
 | `/mail clear sent <all\|n\|x-y>` | Delete sent mail, using the numbering `/mail sent` prints |
 | `/bridge join <link>` | Save a `wss://host/ws#token` link and reconnect |

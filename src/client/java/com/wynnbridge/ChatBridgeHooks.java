@@ -276,13 +276,18 @@ public final class ChatBridgeHooks {
 		showMailBody(heading, content);
 	}
 
-	/** The badge line with {@code heading}, a gap, then {@code > body} indented below it. */
+	/** The badge line with {@code heading}, a gap, then a flush-left {@code > body} line. */
 	private static void showMailBody(String heading, String content) {
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
 				" ", MAIL_COLOR, heading, MAIL_COLOR);
 		showMailBlank();
-		post(Text.literal("    > " + content)
+
+		MutableText body = Text.empty();
+		body.append(Text.literal("> ")
+				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_COLOR))).withBold(true)));
+		body.append(Text.literal(content)
 				.styled(style -> withChatFont(style.withColor(TextColor.fromRgb(MAIL_BRIGHT_COLOR)))));
+		post(body);
 	}
 
 	/** A mail notice drawn in the mail theme. */
