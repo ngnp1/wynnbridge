@@ -33,9 +33,6 @@ public abstract class LabelCommandsMixin {
 	/** Extra air between the title and the name, on top of one line. */
 	private static final float TITLE_GAP = 3.0f * 0.025f;
 
-	/** Half a text pixel at the label scale, used for the half-bold second pass. */
-	private static final float HALF_BOLD = 0.5f * 0.025f;
-
 	/** Guards the recursive call below: the added title is a label too. */
 	private static final ThreadLocal<Boolean> ADDING = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
@@ -69,14 +66,6 @@ public abstract class LabelCommandsMixin {
 			matrices.translate(0.0f, LABEL_LINE + TITLE_GAP, 0.0f);
 			add(matrices, labelPos, offset, titleText,
 					seeThrough, light, squaredDistance, cameraState);
-
-			// Half bold: vanilla bold is a second copy one pixel to the right, so a
-			// second copy half a pixel over lands halfway between normal and bold.
-			matrices.push();
-			matrices.translate(HALF_BOLD, 0.0f, 0.0f);
-			add(matrices, labelPos, offset, titleText,
-					seeThrough, light, squaredDistance, cameraState);
-			matrices.pop();
 			matrices.pop();
 		} catch (Throwable throwable) {
 			WynnBridgeClient.LOGGER.error("Could not draw a player title", throwable);

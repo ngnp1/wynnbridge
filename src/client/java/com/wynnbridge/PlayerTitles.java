@@ -148,7 +148,18 @@ public final class PlayerTitles {
 		}
 
 		flush(out, run, style);
+		forceBold(out);
 		return out;
+	}
+
+	/** Titles are always bold, even after a colour or {@code &r} code in the text. */
+	private static void forceBold(MutableText text) {
+		text.setStyle(text.getStyle().withBold(true));
+		for (Text sibling : text.getSiblings()) {
+			if (sibling instanceof MutableText mutable) {
+				forceBold(mutable);
+			}
+		}
 	}
 
 	private static Style apply(Style style, Formatting formatting) {
