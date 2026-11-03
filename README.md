@@ -123,6 +123,11 @@ Wynncraft command, rename the literal in `BridgeCommands.java`.
   the arrow, badge and message use `#fd4988` with black lettering, the sender name `#cf0042`.
   Mail glyphs and the unread count use `#ffe3c5`, other mail text `#ffb86c`. Glyphs come from
   `tools/gen_badge.py`.
+- On every login the mod asks GitHub for the newest release and reports the result in a
+  `SYSTEM` line right above the mail notice: `New release <version> available - run /bridge
+  update.` or `Wynn Bridge is up to date (<version>).` The mail notice waits for the check (up
+  to five seconds) so the two lines always land together, and the update line still appears on
+  its own when the bridge cannot connect.
 - `/bridge update` trusts the GitHub release over HTTPS and swaps the jar in `mods/`; the
   new version loads on the next start.
 - The server dedupes guild chat for 5 seconds, because every connected client sees the same

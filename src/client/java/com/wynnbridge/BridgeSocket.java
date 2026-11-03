@@ -37,6 +37,12 @@ public final class BridgeSocket {
 	private static final long MAIL_NOTICE_DELAY_MS = 1_500L;
 
 	/**
+	 * The login mail notice holds the update result right above itself, so it waits
+	 * this long for the check; after that it goes out with whatever is known.
+	 */
+	private static final long LOGIN_UPDATE_WAIT_MS = 5_000L;
+
+	/**
 	 * The server pushes mail to an online recipient, but that push can be lost
 	 * (a reconnect leaves a stale socket behind), so ask for anything pending
 	 * now and then as well.
@@ -59,6 +65,11 @@ public final class BridgeSocket {
 	private volatile boolean mailNoticePending;
 	private volatile long mailNoticeDueAt;
 	private volatile long nextMailFetchAt;
+	private volatile boolean loginUpdateReady;
+	private volatile String loginUpdateMessage;
+	private volatile boolean loginUpdateShown;
+	private volatile long loginUpdateDueAt;
+	private volatile int loginUpdateGeneration;
 
 	public BridgeSocket(BridgeConfig config, MailStore mailStore) {
 		this.config = config;
@@ -77,12 +88,16 @@ public final class BridgeSocket {
 		this.playerName = player;
 		this.backoffMs = 1_000L;
 		this.nextAttemptAt = 0L;
+		startLoginUpdateCheck();
 		open();
 	}
 
 	public void disconnect() {
 		this.playerName = null;
 		this.authenticated = false;
+		// Ignore an update result that lands after leaving the world; the next
+		// login starts a fresh check of its own.
+		loginUpdateGeneration++;
 		WebSocket ws = this.webSocket;
 		this.webSocket = null;
 		if (ws != null) {
@@ -161,6 +176,7 @@ public final class BridgeSocket {
 
 	/** Called every client tick so reconnects and retries happen on the main thread. */
 	public void tick() {
+		flushLoginUpdate();
 		flushMailNotice();
 		pollMail();
 
@@ -189,8 +205,55 @@ public final class BridgeSocket {
 		if (!mailNoticePending || System.currentTimeMillis() < mailNoticeDueAt) {
 			return;
 		}
+		// The login update line belongs right above the mail line, so let the
+		// check finish first unless it has taken too long already.
+		if (!loginUpdateReady && System.currentTimeMillis() < loginUpdateDueAt) {
+			return;
+		}
 		mailNoticePending = false;
+		showLoginUpdate();
 		ChatBridgeHooks.showMailCount(mailStore.unreadCount());
+	}
+
+	/**
+	 * Reports the login update on its own when no mail notice is coming, e.g. when
+	 * the bridge cannot connect; it waits the same time the mail notice would.
+	 */
+	private void flushLoginUpdate() {
+		if (playerName == null || loginUpdateShown || mailNoticePending) {
+			return;
+		}
+		if (System.currentTimeMillis() < loginUpdateDueAt) {
+			return;
+		}
+		showLoginUpdate();
+	}
+
+	/** The update line itself, posted once per login. */
+	private void showLoginUpdate() {
+		if (loginUpdateShown) {
+			return;
+		}
+		loginUpdateShown = true;
+		ChatBridgeHooks.showSystem(loginUpdateMessage != null
+				? loginUpdateMessage
+				: "could not check for a new release");
+	}
+
+	private void startLoginUpdateCheck() {
+		int generation = ++loginUpdateGeneration;
+		loginUpdateReady = false;
+		loginUpdateMessage = null;
+		loginUpdateShown = false;
+		loginUpdateDueAt = System.currentTimeMillis() + LOGIN_UPDATE_WAIT_MS;
+		BridgeUpdater.checkAsync(message -> {
+			// A logout (or a quick relog) must not let a stale result through.
+			if (loginUpdateGeneration != generation) {
+				return;
+			}
+			loginUpdateMessage = message;
+			loginUpdateReady = true;
+		});
 	}
 
 	private void scheduleMailNotice() {

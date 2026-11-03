@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * Self-update from GitHub releases.
@@ -57,6 +58,49 @@ public final class BridgeUpdater {
 		Thread thread = new Thread(BridgeUpdater::run, "wynnbridge-updater");
 		thread.setDaemon(true);
 		thread.start();
+	}
+
+	/**
+	 * Checks the newest release off the render thread and hands a one-line status
+	 * to {@code onResult}, which runs on the checking thread.
+	 */
+	public static void checkAsync(Consumer<String> onResult) {
+		Thread thread = new Thread(() -> {
+			String message;
+			try {
+				HttpClient http = HttpClient.newBuilder()
+						.followRedirects(HttpClient.Redirect.NORMAL)
+						.connectTimeout(Duration.ofSeconds(10))
+						.build();
+				message = updateStatus(http);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				message = "could not check for a new release";
+			} catch (Exception e) {
+				WynnBridgeClient.LOGGER.warn("Update check failed", e);
+				message = "could not check for a new release";
+			}
+			onResult.accept(message);
+		}, "wynnbridge-update-check");
+		thread.setDaemon(true);
+		thread.start();
+	}
+
+	/** The login notice: says whether a newer release waits to be downloaded. */
+	private static String updateStatus(HttpClient http) throws IOException, InterruptedException {
+		String current = currentVersion();
+		JsonObject release = latestRelease(http);
+		String latest = text(release, "tag_name");
+		if (latest.startsWith("v")) {
+			latest = latest.substring(1);
+		}
+		if (latest.isEmpty()) {
+			return "could not read the newest release";
+		}
+		if (compareVersions(latest, current) <= 0) {
+			return "Wynn Bridge is up to date (" + current + ")";
+		}
+		return "new release " + latest + " available - run /bridge update";
 	}
 
 	private static void run() {
