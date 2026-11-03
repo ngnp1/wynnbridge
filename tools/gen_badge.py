@@ -1,35 +1,28 @@
 """Generate the channel badges and the cat-arrow icon shipped with the mod.
 
-Both glyphs are 8 px tall, the same as Minecraft's default font, so a themed
-line has exactly the height of a normal chat line and shares its baseline.
+The badge lettering is drawn with Wynncraft's own font (wynnfruma.ttf), the
+same face the server uses in chat. The badges are 8 px tall and the icons 7 px,
+so a themed line keeps the height of a normal chat line and shares its baseline.
 The badge fill matches the colour the mod draws that channel's text in.
 
-Run from the repo root:  python3 tools/gen_badge.py
+Run from the repo root:  python3 tools/gen_badge.py [path/to/wynnfruma.ttf]
+The font defaults to ~/Downloads/wynnfruma.ttf; it is only needed to
+regenerate the PNGs, not to build the mod.
 """
 
+import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 CLEAR = (0, 0, 0, 0)
 
-HEIGHT = 7
+# Icons are 7 px tall; the badge pill is 8 so 6 px lettering keeps 1 px padding.
+ICON_HEIGHT = 7
+BADGE_HEIGHT = 8
 
-# 5x5 hollow letters: 1 px strokes with open counters, like Wynncraft's badges.
-LETTERS = {
-    "A": ["01110", "10001", "11111", "10001", "10001"],
-    "B": ["11110", "10001", "11110", "10001", "11110"],
-    "D": ["11110", "10001", "10001", "10001", "11110"],
-    "E": ["11111", "10000", "11110", "10000", "11111"],
-    "G": ["01110", "10001", "10000", "10011", "01110"],
-    "I": ["111", "010", "010", "010", "111"],
-    "L": ["1000", "1000", "1000", "1000", "1111"],
-    "M": ["10001", "11011", "10101", "10001", "10001"],
-    "R": ["11110", "10001", "11110", "10010", "10001"],
-    "S": ["01111", "10000", "01110", "00001", "11110"],
-    "T": ["11111", "00100", "00100", "00100", "00100"],
-    "Y": ["10001", "10001", "01010", "00100", "00100"],
-}
+BADGE_FONT_SIZE = 14
+DEFAULT_FONT = Path.home() / "Downloads" / "wynnfruma.ttf"
 
 # Right-pointing arrow with a flat left edge, so the chat line starts at the
 # same place as Wynncraft's own messages.
@@ -85,26 +78,25 @@ ROOT = Path(__file__).resolve().parent.parent
 TEX = ROOT / "src/main/resources/assets/wynnbridge/textures/font"
 
 
-def draw_badge(label: str, bg, fg) -> Image.Image:
-    widths = [len(LETTERS[c][0]) for c in label]
-    text_w = sum(widths) + (len(label) - 1)
-    w = text_w + 2
-    img = Image.new("RGBA", (w, HEIGHT), CLEAR)
+def draw_badge(label: str, bg, fg, font: ImageFont.FreeTypeFont) -> Image.Image:
+    """A pill as wide as the ink, with the label centred in 1 px of padding."""
+    left, top, right, bottom = font.getbbox(label)
+    mask = Image.new("L", (right - left + 2, bottom - top + 2), 0)
+    ImageDraw.Draw(mask).text((1 - left, 1 - top), label, font=font, fill=255)
+    mask = mask.crop(mask.getbbox())
+
+    w = mask.width + 2
+    img = Image.new("RGBA", (w, BADGE_HEIGHT), CLEAR)
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle([0, 0, w - 1, HEIGHT - 1], radius=2, fill=bg)
-    x = 1
-    for ch, cw in zip(label, widths):
-        for ry, row in enumerate(LETTERS[ch]):
-            for rx, bit in enumerate(row):
-                if bit == "1":
-                    d.point((x + rx, 1 + ry), fill=fg)
-        x += cw + 1
+    d.rounded_rectangle([0, 0, w - 1, BADGE_HEIGHT - 1], radius=2, fill=bg)
+    img.paste(Image.new("RGBA", mask.size, fg),
+              (1, (BADGE_HEIGHT - mask.height) // 2), mask)
     return img
 
 
 def draw_icon(bg, mid, fg) -> Image.Image:
     w = max(len(row) for row in ARROW)
-    img = Image.new("RGBA", (w, HEIGHT), CLEAR)
+    img = Image.new("RGBA", (w, ICON_HEIGHT), CLEAR)
 
     for y, row in enumerate(ARROW):
         for x, ch in enumerate(row):
@@ -123,11 +115,16 @@ def draw_icon(bg, mid, fg) -> Image.Image:
 
 
 def main() -> None:
+    font_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_FONT
+    if not font_path.is_file():
+        raise SystemExit(f"font not found: {font_path}")
+    font = ImageFont.truetype(str(font_path), BADGE_FONT_SIZE)
+
     TEX.mkdir(parents=True, exist_ok=True)
     for name, channel in CHANNELS.items():
         images = {
             name + "_badge.png": draw_badge(
-                channel["label"], channel["bg"], channel.get("ink", channel["fg"])
+                channel["label"], channel["bg"], channel.get("ink", channel["fg"]), font
             ),
             name + "_icon.png": draw_icon(channel["bg"], channel["mid"], channel["fg"]),
         }
