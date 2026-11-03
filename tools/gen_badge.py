@@ -1,13 +1,14 @@
 """Generate the channel badges and the cat-arrow icon shipped with the mod.
 
-The badge lettering is drawn with Wynncraft's own font (wynnfruma.ttf), the
-same face the server uses in chat. The badges are 8 px tall and the icons 7 px,
-so a themed line keeps the height of a normal chat line and shares its baseline.
-The badge fill matches the colour the mod draws that channel's text in.
+The badge lettering uses Monocraft, an open font designed to look like
+Minecraft's own. It is a pixel font, so it is rasterised monochrome at its
+design size: 7 px caps inside a 9 px pill, next to the 7 px icon. Both glyph
+bands line up on the chat baseline. The badge fill matches the colour the mod
+draws that channel's text in.
 
-Run from the repo root:  python3 tools/gen_badge.py [path/to/wynnfruma.ttf]
-The font defaults to ~/Downloads/wynnfruma.ttf; it is only needed to
-regenerate the PNGs, not to build the mod.
+Run from the repo root:  python3 tools/gen_badge.py [path/to/font.ttf]
+The font defaults to tools/fonts/Monocraft-badges.ttf (a subset of Monocraft;
+see tools/fonts/OFL.txt) and is only needed to regenerate the PNGs.
 """
 
 import sys
@@ -17,17 +18,14 @@ from PIL import Image, ImageDraw, ImageFont
 
 CLEAR = (0, 0, 0, 0)
 
-# Icons are 7 px tall; the badge pill is 8 so 6 px lettering keeps 1 px padding.
+# The icons are 7 px tall and the badge lettering is 7 px, so the pill is 9 px
+# and both glyphs span the same band above the baseline.
 ICON_HEIGHT = 7
-BADGE_HEIGHT = 8
+BADGE_HEIGHT = 9
 
-BADGE_FONT_SIZE = 14
-# Render the labels oversized and scale them down, so FreeType does not snap the
-# strokes to a chunky pixel grid at badge size; the boost restores some density
-# to the softened edges without widening the strokes.
-BADGE_SUPERSAMPLE = 2
-BADGE_ALPHA_BOOST = 1.25
-DEFAULT_FONT = Path.home() / "Downloads" / "wynnfruma.ttf"
+# Monocraft's pixel grid: 9 px gives 7 px caps with a whole-pixel advance.
+BADGE_FONT_SIZE = 9
+DEFAULT_FONT = Path(__file__).resolve().parent / "fonts" / "Monocraft-badges.ttf"
 
 # Right-pointing arrow with a flat left edge, so the chat line starts at the
 # same place as Wynncraft's own messages.
@@ -85,15 +83,11 @@ TEX = ROOT / "src/main/resources/assets/wynnbridge/textures/font"
 
 def draw_badge(label: str, bg, fg, font: ImageFont.FreeTypeFont) -> Image.Image:
     """A pill as wide as the ink, with the label centred in 1 px of padding."""
-    left, top, right, bottom = font.getbbox(label)
-    mask = Image.new("L", (right - left + 2 * BADGE_SUPERSAMPLE,
-                           bottom - top + 2 * BADGE_SUPERSAMPLE), 0)
-    ImageDraw.Draw(mask).text(
-        (BADGE_SUPERSAMPLE - left, BADGE_SUPERSAMPLE - top), label, font=font, fill=255)
+    # Monocraft is a pixel font: the monochrome rasteriser gives hard 1-bit
+    # edges instead of the fuzzy lettering later versions produced.
+    core = font.getmask(label, mode="1")
+    mask = Image.frombytes("L", core.size, bytes(core))
     mask = mask.crop(mask.getbbox())
-    mask = mask.resize((max(1, round(mask.width / BADGE_SUPERSAMPLE)),
-                        max(1, round(mask.height / BADGE_SUPERSAMPLE))), Image.LANCZOS)
-    mask = mask.point(lambda v: min(255, int(v * BADGE_ALPHA_BOOST)))
 
     w = mask.width + 2
     img = Image.new("RGBA", (w, BADGE_HEIGHT), CLEAR)
@@ -128,7 +122,7 @@ def main() -> None:
     font_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_FONT
     if not font_path.is_file():
         raise SystemExit(f"font not found: {font_path}")
-    font = ImageFont.truetype(str(font_path), BADGE_FONT_SIZE * BADGE_SUPERSAMPLE)
+    font = ImageFont.truetype(str(font_path), BADGE_FONT_SIZE)
 
     TEX.mkdir(parents=True, exist_ok=True)
     for name, channel in CHANNELS.items():

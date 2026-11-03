@@ -122,8 +122,9 @@ Wynncraft command, rename the literal in `BridgeCommands.java`.
 - Mod notices use their own `SYSTEM` badge in `#50fa7b`. Bridged Discord chat is themed pink:
   the arrow, badge and message use `#fd4988` with black lettering, the sender name `#cf0042`.
   Mail glyphs and the unread count use `#ffe3c5`, other mail text `#ffb86c`. The badge lettering
-  is rendered from Wynncraft's `wynnfruma.ttf` with `tools/gen_badge.py`; badges are 8 px tall
-  and icons 7 px, so their centres line up on the chat baseline.
+  is rendered with Monocraft, an OFL font designed to look like Minecraft's, by
+  `tools/gen_badge.py` (subset and licence in `tools/fonts/`); badges are 9 px tall and icons
+  7 px, sharing the same band above the chat baseline.
 - On every login the mod asks GitHub for the newest release and reports the result in a
   `SYSTEM` line right above the mail notice: `New release <version> available - run /bridge
   update.` or `Wynn Bridge is up to date (<version>).` The mail notice waits for the check (up
