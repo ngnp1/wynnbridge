@@ -228,6 +228,13 @@ public final class ChatBridgeHooks {
 	private static final String SHIFT = "\uE002";
 
 	/**
+	 * One pixel of left pull between the arrow and the badge: Wynncraft's own
+	 * channel icon is a pixel narrower than ours, so without this the pill starts
+	 * one column right of the game's badges above it.
+	 */
+	private static final String BADGE_PULL = "\uE009";
+
+	/**
 	 * Invisible glyphs that advance by an exact number of pixels, so the mail body
 	 * can indent by the marker's true width instead of rounding to whole spaces.
 	 */
@@ -514,6 +521,7 @@ public final class ChatBridgeHooks {
 		MutableText line = Text.empty();
 		line.append(Text.literal(SHIFT).styled(style -> style.withFont(SHIFT_FONT)));
 		line.append(Text.literal(icon).styled(style -> style.withFont(iconFont)));
+		line.append(Text.literal(BADGE_PULL).styled(style -> style.withFont(SHIFT_FONT)));
 		line.append(Text.literal(badge).styled(style -> style.withFont(badgeFont)));
 		return line;
 	}
