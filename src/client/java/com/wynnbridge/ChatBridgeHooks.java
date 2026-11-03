@@ -228,6 +228,16 @@ public final class ChatBridgeHooks {
 	private static final String SHIFT = "\uE002";
 
 	/**
+	 * Invisible glyphs that advance by an exact number of pixels, so the mail body
+	 * can indent by the marker's true width instead of rounding to whole spaces.
+	 */
+	private static final StyleSpriteSource INDENT_FONT =
+			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "indent"));
+
+	private static final int[] INDENT_ADVANCES = {1, 2, 4, 8, 16, 32};
+	private static final int INDENT_FIRST = 0xE020;
+
+	/**
 	 * Font Wynncraft uses for its own chat lines, mirrored so the bridged line has
 	 * the same glyph height and spacing instead of the vanilla defaults.
 	 */
@@ -299,15 +309,11 @@ public final class ChatBridgeHooks {
 
 		int width = Math.max(40, chatLineWidth());
 		int markerWidth = renderer.getWidth(Text.literal(MAIL_BODY_MARKER).setStyle(markerStyle));
-		int spaceWidth = Math.max(1, renderer.getWidth(Text.literal(" ").setStyle(bodyStyle)));
-		// Continuation lines indent by as many spaces as the marker is wide, so
-		// every line of the body starts at the same column as the first.
-		String indent = " ".repeat(Math.max(1, Math.round((float) markerWidth / spaceWidth)));
-		int indentWidth = renderer.getWidth(Text.literal(indent).setStyle(bodyStyle));
 
+		// Every line breaks at the same width and indents by the marker's exact
+		// pixel width, so the body text lines up under itself.
 		List<String> lines = wrapBody(content,
-				Math.max(1, width - markerWidth - MAIL_WRAP_MARGIN),
-				Math.max(1, width - indentWidth - MAIL_WRAP_MARGIN));
+				Math.max(1, width - markerWidth - MAIL_WRAP_MARGIN));
 
 		// One message keeps the body a single chat entry; the chat HUD starts a
 		// new line at every explicit newline, and each line already fits.
@@ -316,11 +322,25 @@ public final class ChatBridgeHooks {
 			if (i == 0) {
 				body.append(Text.literal(MAIL_BODY_MARKER).setStyle(markerStyle));
 			} else {
-				body.append(Text.literal("\n" + indent).setStyle(bodyStyle));
+				body.append(Text.literal("\n").setStyle(bodyStyle));
+				body.append(indentPrefix(markerWidth));
 			}
 			body.append(Text.literal(lines.get(i)).setStyle(bodyStyle));
 		}
 		post(body);
+	}
+
+	/** An invisible prefix that advances exactly {@code width} pixels. */
+	private static MutableText indentPrefix(int width) {
+		MutableText prefix = Text.empty();
+		for (int i = INDENT_ADVANCES.length - 1; i >= 0 && width > 0; i--) {
+			if (width >= INDENT_ADVANCES[i]) {
+				width -= INDENT_ADVANCES[i];
+				prefix.append(Text.literal(new String(Character.toChars(INDENT_FIRST + i)))
+						.setStyle(Style.EMPTY.withFont(INDENT_FONT)));
+			}
+		}
+		return prefix;
 	}
 
 	/** The width in pixels the chat HUD wraps at, matching how it breaks messages. */
@@ -332,16 +352,15 @@ public final class ChatBridgeHooks {
 	}
 
 	/**
-	 * Greedy word wrap of the body at the two pixel widths: the first line sits
-	 * behind the marker, every later one behind the indent.
+	 * Greedy word wrap of the body at the pixel width left over after the marker,
+	 * which is the same for every line because the indent matches the marker.
 	 */
-	private static List<String> wrapBody(String content, int firstWidth, int restWidth) {
+	private static List<String> wrapBody(String content, int limit) {
 		TextRenderer renderer = MinecraftClient.getInstance().textRenderer;
 		Style style = withChatFont(Style.EMPTY.withColor(TextColor.fromRgb(MAIL_BRIGHT_COLOR)));
 
 		List<String> lines = new ArrayList<>();
 		StringBuilder current = new StringBuilder();
-		int limit = firstWidth;
 
 		for (String word : content.trim().split("\\s+")) {
 			if (word.isEmpty()) {
@@ -357,7 +376,6 @@ public final class ChatBridgeHooks {
 			if (!current.isEmpty()) {
 				lines.add(current.toString());
 				current.setLength(0);
-				limit = restWidth;
 			}
 
 			// A single word can still be wider than the line, so split it by
