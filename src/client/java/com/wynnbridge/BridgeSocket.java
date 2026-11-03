@@ -294,6 +294,9 @@ public final class BridgeSocket {
 		payload.addProperty("title", title == null ? "" : title);
 		payload.addProperty("content", content);
 		send(payload);
+		// The bot only echoes the recipient, never the mail itself, so keep the
+		// local copy for /mail sent as soon as the mail is queued.
+		mailStore.addSent(recipient, title, content);
 	}
 
 	public void mailRead(int id) {

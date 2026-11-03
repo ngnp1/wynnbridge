@@ -258,12 +258,12 @@ public final class ChatBridgeHooks {
 				" " + author + ": ", BRIDGE_COLOR, content, BRIDGE_MESSAGE_COLOR);
 	}
 
-	/** A read mail: {@code [sender]: "title"} on one line, a gap, then the body. */
+	/** A read mail: {@code sender: "title"} on one line, a gap, then the body. */
 	public static void showMail(String sender, String title, String content) {
 		String trimmed = title == null ? "" : title.trim();
 		String heading = trimmed.isEmpty()
-				? "[" + sender + "]"
-				: "[" + sender + "]: \"" + trimmed + "\"";
+				? sender + ":"
+				: sender + ": \"" + trimmed + "\"";
 		themedLine(MAIL_ICON_FONT, MAIL_ICON, MAIL_BADGE_FONT, MAIL_BADGE,
 				" ", MAIL_COLOR, heading, MAIL_COLOR);
 		showMailBlank();
@@ -331,6 +331,24 @@ public final class ChatBridgeHooks {
 				.styled(style -> withChatFont(style.withColor(amber))));
 		line.append(Text.literal("from").styled(style -> withChatFont(style.withColor(bright))));
 		line.append(Text.literal(" " + sender).styled(style -> withChatFont(style.withColor(amber))));
+		post(line);
+	}
+
+	/**
+	 * An entry in the sent inbox: the same layout as {@link #showMailEntry} without
+	 * the read tags, naming the recipient instead of the sender.
+	 */
+	public static void showSentEntry(int number, String title, String recipient) {
+		TextColor amber = TextColor.fromRgb(MAIL_COLOR);
+		TextColor bright = TextColor.fromRgb(MAIL_BRIGHT_COLOR);
+		String trimmed = title == null ? "" : title.trim();
+
+		MutableText line = Text.empty();
+		line.append(Text.literal("    #" + number).styled(style -> withChatFont(style.withColor(bright))));
+		line.append(Text.literal(trimmed.isEmpty() ? " " : " " + trimmed + " ")
+				.styled(style -> withChatFont(style.withColor(amber))));
+		line.append(Text.literal("to").styled(style -> withChatFont(style.withColor(bright))));
+		line.append(Text.literal(" " + recipient).styled(style -> withChatFont(style.withColor(amber))));
 		post(line);
 	}
 

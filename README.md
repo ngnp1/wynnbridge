@@ -10,9 +10,9 @@ Client-side mod that connects Minecraft to the bot's chat bridge:
 - **Mail:** `/mail send <player> <title> <text>` stores a message server-side. Titles may be
   quoted to hold several words and are capped at 60 characters. The recipient sees a themed
   `You have <n> new Mails!` line when they log in or when mail arrives; `/mail inbox` lists every
-  mail, unread first, with `<unr>`/`<r>` tags and paging. `/mail read <n>` opens one and
-  `/mail clear` deletes them. Pending mail is polled every 15 seconds, so a mail the server
-  could not push still shows up without a relog.
+  mail, unread first, with `<unr>`/`<r>` tags and paging, and `/mail sent` lists the mail you
+  sent. `/mail read <n>` opens one and `/mail clear` deletes them. Pending mail is polled every
+  15 seconds, so a mail the server could not push still shows up without a relog.
 
 ## Player titles
 
@@ -101,8 +101,10 @@ install nothing extra: Cloudflare Tunnel (`wss://bridge.example.com/ws`) or
 | --- | --- |
 | `/mail send <player> <title> <text>` | Send mail through the bridge; quote the title for several words (max 60 chars) |
 | `/mail inbox [unread\|read] [page]` | Heads with `Inbox - Page x` / `Inbox <unread> - Page x` / `Inbox <read> - Page x`, then ten `<unr>`/`<r>` `#n <title> from <sender>` lines, unread first |
-| `/mail read <n>` | Show the mail: `[sender]: "title"` on the badge line, a gap, then the body; marks it read |
+| `/mail sent [page]` | Heads with `Inbox <sent> - Page x`, then ten `#n <title> to <recipient>` lines in the order they were sent |
+| `/mail read <n>` | Show the mail: `sender: "title"` on the badge line, a gap, then the body; marks it read |
 | `/mail clear <all\|n\|x-y> [from <player>]` | Delete one mail, an inclusive range, or everything; `from` narrows it to one sender |
+| `/mail clear sent <all\|n\|x-y>` | Delete sent mail, using the numbering `/mail sent` prints |
 | `/bridge join <link>` | Save a `wss://host/ws#token` link and reconnect |
 | `/bridge status` | Server URL, connection state, unread count |
 | `/bridge reconnect` | Force a reconnect |
@@ -129,7 +131,9 @@ Wynncraft command, rename the literal in `BridgeCommands.java`.
 - Chat is truncated to 240 characters by the server, mail to 900.
 - Mail is stored in SQLite on the bot (`data/bridge.sqlite3`) plus a local copy in
   `config/wynnbridge-mail.json`; reading a mail marks it read in both, and it stays in the inbox
-  until `/mail clear` removes it there and on the bot.
+  until `/mail clear` removes it there and on the bot. Sent mail is mirrored locally to
+  `config/wynnbridge-mail-sent.json`, since the bot never sends it back; `/mail clear sent`
+  deletes the local copy only.
 
 ## If compilation fails
 
