@@ -225,7 +225,8 @@ public final class ChatBridgeHooks {
 	private static final StyleSpriteSource SHIFT_FONT =
 			new StyleSpriteSource.Font(Identifier.of("wynnbridge", "shift"));
 
-	private static final String SHIFT = "\uE002";
+	/** Three pixels of left pull for the whole line ({@code \uE00B} is -3 px). */
+	private static final String SHIFT = "\uE00B";
 
 	/**
 	 * One pixel of right push between the arrow and the badge: Wynncraft's own
