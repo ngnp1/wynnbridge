@@ -5,9 +5,6 @@ import com.wynnbridge.WynnBridgeClient;
 import net.minecraft.client.render.command.LabelCommandRenderer;
 import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.StyleSpriteSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -36,6 +33,9 @@ public abstract class LabelCommandsMixin {
 	/** Extra air between the title and the name, on top of one line. */
 	private static final float TITLE_GAP = 3.0f * 0.025f;
 
+	/** Half a text pixel at the label scale, used for the half-bold second pass. */
+	private static final float HALF_BOLD = 0.5f * 0.025f;
+
 	/** Guards the recursive call below: the added title is a label too. */
 	private static final ThreadLocal<Boolean> ADDING = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
@@ -63,42 +63,26 @@ public abstract class LabelCommandsMixin {
 
 		ADDING.set(Boolean.TRUE);
 		try {
-			MutableText titleText = PlayerTitles.toText(title);
-			// Draw the title in the font the name label itself uses (wynnmod's own
-			// nametag font), so the two lines look like they belong together.
-			StyleSpriteSource font = fontOf(text);
-			if (font != null) {
-				titleText.setStyle(titleText.getStyle().withFont(font));
-			}
+			Text titleText = PlayerTitles.toText(title);
 
 			matrices.push();
 			matrices.translate(0.0f, LABEL_LINE + TITLE_GAP, 0.0f);
 			add(matrices, labelPos, offset, titleText,
 					seeThrough, light, squaredDistance, cameraState);
+
+			// Half bold: vanilla bold is a second copy one pixel to the right, so a
+			// second copy half a pixel over lands halfway between normal and bold.
+			matrices.push();
+			matrices.translate(HALF_BOLD, 0.0f, 0.0f);
+			add(matrices, labelPos, offset, titleText,
+					seeThrough, light, squaredDistance, cameraState);
+			matrices.pop();
 			matrices.pop();
 		} catch (Throwable throwable) {
 			WynnBridgeClient.LOGGER.error("Could not draw a player title", throwable);
 		} finally {
 			ADDING.set(Boolean.FALSE);
 		}
-	}
-
-	/** First font declared anywhere in a label's component tree, if any. */
-	private static StyleSpriteSource fontOf(Text text) {
-		if (text == null) {
-			return null;
-		}
-		Style style = text.getStyle();
-		if (style != null && style.getFont() != null) {
-			return style.getFont();
-		}
-		for (Text sibling : text.getSiblings()) {
-			StyleSpriteSource found = fontOf(sibling);
-			if (found != null) {
-				return found;
-			}
-		}
-		return null;
 	}
 
 	/** The title for a label, matched against the text the label carries. */
