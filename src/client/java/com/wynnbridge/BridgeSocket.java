@@ -65,6 +65,7 @@ public final class BridgeSocket {
 	private volatile boolean mailNoticePending;
 	private volatile long mailNoticeDueAt;
 	private volatile long nextMailFetchAt;
+	private volatile boolean loginNoticeScheduled;
 	private volatile boolean loginUpdateReady;
 	private volatile String loginUpdateMessage;
 	private volatile boolean loginUpdateShown;
@@ -88,6 +89,7 @@ public final class BridgeSocket {
 		this.playerName = player;
 		this.backoffMs = 1_000L;
 		this.nextAttemptAt = 0L;
+		this.loginNoticeScheduled = false;
 		startLoginUpdateCheck();
 		open();
 	}
@@ -432,8 +434,14 @@ public final class BridgeSocket {
 				authenticated = true;
 				backoffMs = 1_000L;
 				WynnBridgeClient.LOGGER.info("Bridge authenticated as {}", text(payload, "player"));
-				// The server pushes anything unread right after authenticating.
-				scheduleMailNotice();
+				// The server pushes anything unread right after authenticating, so
+				// announce the inbox once per login. A reconnect must not announce
+				// the same old mail again; mail that arrives later still notifies
+				// through the "mail" frame below.
+				if (!loginNoticeScheduled) {
+					loginNoticeScheduled = true;
+					scheduleMailNotice();
+				}
 			}
 			case "auth_error" -> {
 				WynnBridgeClient.LOGGER.warn("Bridge rejected credentials: {}", text(payload, "error"));
