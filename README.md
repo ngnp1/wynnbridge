@@ -1,4 +1,4 @@
-# Wynn Bridge (Fabric 1.21.11)
+# Imperial Client (Fabric 1.21.11)
 
 Client-side mod that connects Minecraft to the bot's chat bridge:
 
@@ -64,7 +64,7 @@ Then:
 ./gradlew build
 ```
 
-The jar lands in `build/libs/wynnbridge-1.0.0.jar`. Drop it and
+The jar lands in `build/libs/imperial-client-1.0.0.jar`. Drop it and
 [Fabric API](https://modrinth.com/mod/fabric-api) for 1.21.11 into `.minecraft/mods`.
 
 ## Configure
@@ -125,7 +125,7 @@ Wynncraft command, rename the literal in `BridgeCommands.java`.
   the cat arrow come from `tools/gen_badge.py`; badges and icons are 7 px tall.
 - On every login the mod asks GitHub for the newest release and reports the result in a
   `SYSTEM` line right above the mail notice: `New release <version> available - run /bridge
-  update.` or `Wynn Bridge is up to date (<version>).` The mail notice waits for the check (up
+  update.` or `Imperial Client is up to date (<version>).` The mail notice waits for the check (up
   to five seconds) so the two lines always land together, and the update line still appears on
   its own when the bridge cannot connect.
 - `/bridge update` trusts the GitHub release over HTTPS and swaps the jar in `mods/`; the

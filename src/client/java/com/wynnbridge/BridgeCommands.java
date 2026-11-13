@@ -442,7 +442,7 @@ public final class BridgeCommands {
 	}
 
 	private static void showHelp(FabricClientCommandSource source) {
-		feedback(source, "Wynn Bridge commands:");
+		feedback(source, "Imperial Client commands:");
 		feedback(source, "/mail send <player> <title> <text> - send mail (quote multi-word titles)");
 		feedback(source, "/mail inbox [unread|read] [page] - list mail, unread first");
 		feedback(source, "/mail sent [page] - list the mail you sent");

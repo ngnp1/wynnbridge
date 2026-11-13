@@ -9,4 +9,4 @@ pluginManagement {
 	}
 }
 
-rootProject.name = 'wynnbridge'
+rootProject.name = 'imperial-client'

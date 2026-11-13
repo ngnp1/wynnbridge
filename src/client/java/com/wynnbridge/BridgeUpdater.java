@@ -98,7 +98,7 @@ public final class BridgeUpdater {
 			return "could not read the newest release";
 		}
 		if (compareVersions(latest, current) <= 0) {
-			return "Wynn Bridge is up to date (" + current + ")";
+			return "Imperial Client is up to date (" + current + ")";
 		}
 		return "new release " + latest + " available - run /bridge update";
 	}
@@ -139,7 +139,7 @@ public final class BridgeUpdater {
 
 			ChatBridgeHooks.showSystem("downloading " + latest + "...");
 			byte[] jar = download(http, url, current);
-			Path target = mods.resolve("wynnbridge-" + latest + ".jar");
+			Path target = mods.resolve("imperial-client-" + latest + ".jar");
 			install(mods, target, jar);
 
 			int left = removeOldJars(mods, target.getFileName().toString());
@@ -235,12 +235,17 @@ public final class BridgeUpdater {
 		}
 	}
 
-	/** Deletes every other {@code wynnbridge-*.jar}; returns how many remain. */
+	/** Deletes every other build jar; returns how many remain. */
 	private static int removeOldJars(Path mods, String keep) {
 		int remaining = 0;
-		try (DirectoryStream<Path> entries = Files.newDirectoryStream(mods, "wynnbridge-*.jar")) {
+		try (DirectoryStream<Path> entries = Files.newDirectoryStream(mods, "*.jar")) {
 			for (Path entry : entries) {
-				if (entry.getFileName().toString().equals(keep)) {
+				String name = entry.getFileName().toString();
+				// Older builds shipped as wynnbridge-*.jar before the rename.
+				if (!name.startsWith("imperial-client-") && !name.startsWith("wynnbridge-")) {
+					continue;
+				}
+				if (name.equals(keep)) {
 					continue;
 				}
 				try {

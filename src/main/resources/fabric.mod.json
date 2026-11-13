@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"id": "wynnbridge",
 	"version": "${version}",
-	"name": "Wynn Bridge",
+	"name": "Imperial Client",
 	"description": "Bridges Wynncraft guild chat with a Discord channel and adds in-game mail.",
 	"authors": [
 		"you"
